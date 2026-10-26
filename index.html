@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> Farmer-to-Buyer Market</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+         /* Modern Header & Navigation Extensions  */
+        .main-header {
+            background: #ffffff;
+            border-bottom: 1px solid var(--gray-border);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+        }
+
+        .header-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.85rem 1.5rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .brand-logo {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--primary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            letter-spacing: -0.3px;
+        }
+
+        .brand-badge {
+            font-size: 0.72rem;
+            background: var(--primary-soft);
+            color: var(--primary);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+
+        .nav-menu {
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .nav-link {
+            color: var(--dark);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.95rem;
+            padding: 0.4rem 0.75rem;
+            border-radius: var(--radius);
+            transition: all 0.2s ease-in-out;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            color: var(--primary);
+            background: var(--primary-soft);
+        }
+
+        .cart-badge-counter {
+            background: var(--accent);
+            color: rgb(243, 245, 243);
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 50px;
+            margin-left: 4px;
+        }
+
+        .user-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        /* Continuous Crawling / Scrolling Ticker Banner Styles */
+        .announcement-ticker {
+            background: #1e293b;
+            color: #ffffff;
+            font-size: 0.9rem;
+            overflow: hidden;
+            white-space: nowrap;
+            box-shadow: inset 0 -1px 3px rgba(0,0,0,0.2);
+            border-bottom: 2px solid var(--primary, #2e7d32);
+            display: flex;
+            align-items: center;
+            position: relative;
+            z-index: 999;
+        }
+
+        .ticker-badge {
+            background: var(--primary, #2e7d32);
+            color: #ffffff;
+            padding: 0.5rem 1rem;
+            font-weight: 700;
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            z-index: 2;
+            flex-shrink: 0;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.2);
+        }
+
+        .ticker-content {
+            display: inline-block;
+            white-space: nowrap;
+            padding-left: 100%;
+            /* Increased duration from 35s to 48s for a slower, easier-to-read crawl */
+            animation: tickerScroll 48s linear infinite;
+        }
+
+        .announcement-ticker:hover .ticker-content {
+            animation-play-state: paused; /* Pause scrolling on hover for readability */
+        }
+
+        .ticker-item {
+            display: inline-flex;
+            align-items: center;
+            margin-right: 3rem;
+            font-weight: 500;
+        }
+
+        .ticker-item .highlight {
+            color: #f59e0b;
+            font-weight: 700;
+            margin-left: 4px;
+            margin-right: 4px;
+        }
+
+        @keyframes tickerScroll {
+            0% { transform: translate3d(0, 0, 0); }
+            100% { transform: translate3d(-100%, 0, 0); }
+        }
+
+        @media (max-width: 868px) {
+            .header-wrapper {
+                flex-direction: column;
+                gap: 0.8rem;
+                padding: 1rem;
+            }
+            .nav-menu {
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 1. HEADER & NAVIGATION BAR -->
+    <header class="main-header">
+        <div class="header-wrapper">
+            <a href="index.html" class="brand-logo">
+                <div style="display: flex; flex-direction: column; align-items: center; text-align: center;">
+                  <img src="./img/logo1.png" alt="logo" width="150px">
+                  <span style="margin-top: 8px;">DanFam Market</span>
+                </div>
+            </a>
+
+            <nav>
+                <ul class="nav-menu">
+                    <li><a href="index.html" class="nav-link active">🏠 Home</a></li>
+                    <li><a href="catalogue.php" class="nav-link active">🌾 Catalogue</a></li>
+                    <li><a href="farmer_dashboard.php" class="nav-link active">🚜 Farmer Portal</a></li>
+                    <li><a href="admin_dashboard.php" class="nav-link active">⚙️ Admin</a></li>
+                    <li>
+                        <a href="cart.php" class="nav-link active">
+                            🛒 Cart <span id="cart-count" class="cart-badge-counter">0</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="user-actions">
+                <a href="login.php?action=login" class="btn btn-outline" style="padding: 0.4rem 0.9rem; font-size: 0.9rem;">
+                    Sign In
+                </a>
+                <a href="register.php?action=register" class="btn btn-accent" style="padding: 0.4rem 0.9rem; font-size: 0.9rem;">
+                    Register
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- 2. RELEVANT ANNOUNCEMENT TICKER (CRAWLING WORDS BELOW NAVBAR) -->
+    <div class="announcement-ticker">
+        <div class="ticker-badge"> Market Updates</div>
+        <div class="ticker-content">
+            <span class="ticker-item"><strong class="highlight">Farmers Alert:</strong> New harvest listings for Irish Potatoes (Migori) and Hass Avocados (Kisii) are now live! Update your stock quantities in the Farmer Portal.</span>
+            <span class="ticker-item"> <strong class="highlight">Buyers Notice:</strong> Direct farm dispatch guaranteed within 24 hours across Kisumu, Nakuru, Nairobi, and Mombasa counties.</span>
+            <span class="ticker-item"> <strong class="highlight">Market Price Standard:</strong> Kisumu Fresh Fish starting at KSh 1,500/piece | Hass Avocados at KSh 150/kg | Red Potatoes 50kg bag at KSh 3,200.</span>
+            <span class="ticker-item"> <strong class="highlight">Join DanFam:</strong> Smallholder farmer registration is open across 12 counties with zero listing commissions for new profiles.</span>
+            <span class="ticker-item"> <strong class="highlight">Logistics Tracking:</strong> Order lifecycle state updates: Placed &rarr; Confirmed &rarr; Dispatched &rarr; Delivered.</span>
+        </div>
+    </div>
+
+    <!-- HERO BANNER SECTION WITH MOVING BACKGROUND SLIDER -->
+    <section class="hero-slider-container" style="position: relative; overflow: hidden; border-radius: var(--radius-lg); margin: 1.5rem auto; max-width: 1200px; box-shadow: var(--shadow-md);">
+        
+        <!-- Moving Background Images Overlay Layer -->
+        <div class="hero-bg-slides"></div>
+
+        <!-- Dark Contrast Overlay to Ensure Text & Buttons Remain Legible -->
+        <!-- <div style="position: absolute; inset: 0; background: linear-gradient(135deg, rgba(27, 94, 32, 0.88) 0%, rgba(15, 23, 42, 0.82) 100%); z-index: 1;"></div> -->
+
+        <!-- Hero Foreground Content -->
+        <div class="container" style="position: relative; z-index: 2; max-width: 850px; margin: 0 auto; padding: 4.5rem 1.5rem; text-align: center; color: white;">
+            <span style="background: rgba(2, 99, 34, 0.2); backdrop-filter: blur(4px); padding: 0.35rem 1rem; border-radius: 50px; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid rgba(2, 85, 16, 0.3);">
+            Direct Farm-to-Buyer Market
+            </span>
+            
+            <h1 style="font-size: 2.8rem; font-weight: 800; margin-top: 1rem; margin-bottom: 1rem; line-height: 1.2; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">
+                Fresh Harvests Directly From Kenyan Smallholders
+            </h1>
+            
+            <p style="font-size: 1.15rem; opacity: 0.95; margin-bottom: 2rem; line-height: 1.6; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">
+                Connecting registered smallholder farmers across Migori, Homabay, Kisii, Nakuru, Kisumu, Siaya, Kakamega, Vihiga, Tranzoia, Uasin Gishu, Nairobi and Mombasa counties directly with households, hotels, schools, and exporters.
+            </p>
+
+            <div style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
+                <a href="catalogue.php" class="btn btn-accent" style="padding: 0.85rem 2rem; font-size: 1.05rem; font-weight: 700; box-shadow: var(--shadow-md);">
+                    🛒 Browse Produce Catalogue
+                </a>
+                <a href="register.php" class="btn btn-outline" style="background: white; color: var(--primary); border-color: white; padding: 0.85rem 2rem; font-size: 1.05rem; font-weight: 700; box-shadow: var(--shadow-md);">
+                    🚜 Join as a Farmer
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- CSS STYLES FOR THE MOVING BACKGROUND SLIDER -->
+    <style>
+        /* Container positioning */
+        .hero-slider-container {
+            min-height: 420px;
+            display: flex;
+            align-items: center;
+        }
+
+        /* Background slideshow element */
+        .hero-bg-slides {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            animation: kenyanFarmSlider 18s infinite ease-in-out;
+            z-index: 0;
+        }
+        .hero-slider {
+            position: relative;
+            animation: kenyanFarmSlider 24s infinite ease-in-out;
+            background-size: cover;
+            background-position: center;
+        }
+
+        /* Clear white overlay layer */
+        .hero-slider::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* Ensures your text/logo inside the hero stays on top of the white overlay */
+        .hero-slider > * {
+            position: relative;
+            z-index: 2;
+        }
+
+        @keyframes kenyanFarmSlider {
+            0% {
+                background-image: url('./img/ava.jpg?auto=format&fit=crop&w=1400&q=80');
+                transform: scale(1);
+            }
+            16.6% {
+                background-image: url('./img/cane.jpg?auto=format&fit=crop&w=1400&q=80');
+                transform: scale(1.05);
+            }
+            33.3% {
+                background-image: url('./img/cow.jpg?auto=format&fit=crop&w=1400&q=80');
+                transform: scale(1);
+            }
+            50% {
+                background-image: url('./img/rabuon.jpg?auto=format&fit=crop&w=1400&q=80');
+                transform: scale(1.05);
+            }
+            55.5% {
+                background-image: url('./img/fishing.jpg?auto=format&fit=crop&w=1400&q=80');
+                transform: scale(1.05);
+            }
+            66.6% {
+                background-image: url('./img/lake.jpg?auto=format&fit=crop&w=1400&q=80');
+                transform: scale(1);
+            }
+            70.6% {
+                background-image: url('./img/cow1.jpg?auto=format&fit=crop&w=1400&q=80');
+                transform: scale(1);
+            }
+            83.3% {
+                background-image: url('./img/tea.jpg?auto=format&fit=crop&w=1400&q=80');
+                transform: scale(1.05);
+            }
+            98.3% {
+                background-image: url('./img/lake.jpg?auto=format&fit=crop&w=1400&q=80');
+                transform: scale(1.05);
+            }
+            100% {
+                background-image: url('./img/viass.jpg?auto=format&fit=crop&w=1400&q=80');
+                transform: scale(1);
+            }
+        }
+    </style>
+
+    <!-- 3. MAIN CONTENT CONTAINER -->
+    <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 0 1.5rem 4rem 1.5rem;">
+
+        <!-- Quick Search Bar -->
+        <div class="card card-body" style="padding: 1.5rem; margin-bottom: 3rem; background: white; border: 1px solid var(--gray-border);">
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+                <input type="text" id="quick-search" placeholder="Search crops..." style="flex: 1; min-width: 280px; padding: 0.75rem 1rem; border: 1px solid var(--gray-border); border-radius: var(--radius); font-size: 0.95rem;">
+                <a href="catalogue.php" class="btn btn-accent" style="padding: 0.75rem 1.5rem;">
+                    🔍  Search Catalogue
+                </a>
+            </div>
+        </div>
+
+        <!-- Category Shortcuts -->
+        <div style="margin-bottom: 3rem;">
+            <h3 style="font-size: 1.3rem; color: var(--dark); margin-bottom: 1rem; font-weight: 700;">
+                📂 Kenyan Produce Categories
+            </h3>
+            <div style="display: flex; gap: 0.8rem; overflow-x: auto; padding-bottom: 0.5rem;">
+                <a href="catalogue.php" class="btn btn-outline" style="white-space: nowrap; font-size: 0.9rem; background: white;">All Crops</a>
+                <a href="catalogue.php?category=1" class="btn btn-outline" style="white-space: nowrap; font-size: 0.9rem; background: white;">🥦 Consumables</a>
+                <a href="catalogue.php?category=2" class="btn btn-outline" style="white-space: nowrap; font-size: 0.9rem; background: white;">🥑 Fruits & Produce</a>
+                <a href="catalogue.php?category=3" class="btn btn-outline" style="white-space: nowrap; font-size: 0.9rem; background: white;">🌽 Cereals & Grains</a>
+                <a href="catalogue.php?category=4" class="btn btn-outline" style="white-space: nowrap; font-size: 0.9rem; background: white;">🥔 Tubers & Roots</a>
+                <a href="catalogue.php?category=5" class="btn btn-outline" style="white-space: nowrap; font-size: 0.9rem; background: white;">🍃 Industrial Crops</a>
+            </div>
+        </div>
+
+        <!-- Featured Recent Produce Grid -->
+        <div style="margin-bottom: 3.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <div>
+                    <h2 style="font-size: 1.6rem; color: var(--dark); font-weight: 700;">🌟 Featured Kenyan Produce</h2>
+                    <p style="color: var(--text-muted); font-size: 0.95rem;">Fresh, verified listings from smallholder farms.</p>
+                </div>
+                <a href="catalogue.php" style="color: var(--primary); font-weight: 600; text-decoration: none;">
+                    View All Items &rarr;
+                </a>
+            </div>
+
+            <div class="grid" id="homepage-grid">
+                <!-- Sample / Default Items for Front-end Preview -->
+                <div class="card produce-card">
+                    <a href="product.php?id=1">
+                        <img src="./img/rech.jpg" alt="Fish width = 500">
+                    </a>
+                    <div class="card-body">
+                        <span class="badge badge-confirmed" style="margin-bottom: 0.4rem;">Consumables</span>
+                        <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 0.3rem;">
+                            <a href="product.php?id=1" style="color: var(--dark); text-decoration: none;">Kisumu Fresh Fish</a>
+                        </h3>
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">
+                            👨‍🌾 Onagi Farmers | 📍 Dunga Beach, Kisumu
+                        </p>
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--gray-border); padding-top: 0.8rem;">
+                            <div>
+                                <span style="font-size: 1.25rem; font-weight: 700; color: var(--primary);">KSh 1,500.00</span>
+                                <small style="font-size: 0.8rem; color: var(--text-muted); display: block;">per piece</small>
+                            </div>
+                            <button class="btn btn-accent" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;" onclick="addToCart(1, 'Kiambu Fresh Cabbages', 60.00)">
+                                🛒 Add
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card produce-card">
+                    <a href="product.php?id=2">
+                        <img src="https://images.unsplash.com/photo-1523049673857-eb18f1d7b578?w=500" alt="Hass Avocados">
+                    </a>
+                    <div class="card-body">
+                        <span class="badge badge-confirmed" style="margin-bottom: 0.4rem;">Fruits</span>
+                        <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 0.3rem;">
+                            <a href="product.php?id=2" style="color: var(--dark); text-decoration: none;">Kisii Hass Avocados</a>
+                        </h3>
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">
+                            👨‍🌾 Obiero Stores | 📍 Ekonge, Kisii
+                        </p>
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--gray-border); padding-top: 0.8rem;">
+                            <div>
+                                <span style="font-size: 1.25rem; font-weight: 700; color: var(--primary);">KSh 150.00</span>
+                                <small style="font-size: 0.8rem; color: var(--text-muted); display: block;">per kg</small>
+                            </div>
+                            <button class="btn btn-accent" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;" onclick="addToCart(2, 'Muranga Hass Avocados', 150.00)">
+                                🛒 Add
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card produce-card">
+                    <a href="product.php?id=3">
+                        <img src="https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=500" alt="Irish Potatoes">
+                    </a>
+                    <div class="card-body">
+                        <span class="badge badge-confirmed" style="margin-bottom: 0.4rem;">Tubers</span>
+                        <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 0.3rem;">
+                            <a href="product.php?id=3" style="color: var(--dark); text-decoration: none;">Migori Red Irish Potatoes</a>
+                        </h3>
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">
+                            👨‍🌾 Mikwa Guru | 📍 Awendo stores, Awendo
+                        </p>
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--gray-border); padding-top: 0.8rem;">
+                            <div>
+                                <span style="font-size: 1.25rem; font-weight: 700; color: var(--primary);">KSh 3,200.00</span>
+                                <small style="font-size: 0.8rem; color: var(--text-muted); display: block;">per 50kg bag</small>
+                            </div>
+                            <button class="btn btn-accent" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;" onclick="addToCart(3, 'Meru Red Irish Potatoes', 3200.00)">
+                                🛒 Add
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. SYSTEM VALUE PROPOSITION & WORKFLOW CARDS -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-top: 2rem;">
+            <div class="card card-body" style="text-align: center; padding: 2rem;">
+                <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">👨‍🌾</div>
+                <h3 style="margin-bottom: 0.5rem; color: var(--dark);">For Farmers</h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">Register, list produce details (price, quantity, origin), and receive direct order notifications from verified buyers.</p>
+                <a href="form.php" style="color: var(--primary); font-weight: 600; text-decoration: none; font-size: 0.9rem; display: inline-block; margin-top: 1rem;">Post Produce &rarr;</a>
+            </div>
+
+            <div class="card card-body" style="text-align: center; padding: 2rem;">
+                <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🛒</div>
+                <h3 style="margin-bottom: 0.5rem; color: var(--dark);">For Buyers</h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">Browse fresh regional crops, add items to cart, specify delivery addresses, and obtain printable receipt summaries.</p>
+                <a href="catalogue.php" style="color: var(--primary); font-weight: 600; text-decoration: none; font-size: 0.9rem; display: inline-block; margin-top: 1rem;">Shop Harvests &rarr;</a>
+            </div>
+
+            <div class="card card-body" style="text-align: center; padding: 2rem;">
+                <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🚚</div>
+                <h3 style="margin-bottom: 0.5rem; color: var(--dark);">Order Lifecycle</h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">Real-time order state transition monitoring: <code>Placed</code> &rarr; <code>Confirmed</code> &rarr; <code>Dispatched</code> &rarr; <code>Delivered</code>.</p>
+                <a href="checkout.php" style="color: var(--primary); font-weight: 600; text-decoration: none; font-size: 0.9rem; display: inline-block; margin-top: 1rem;">View Checkout &rarr;</a>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- 5. SITE FOOTER -->
+    <footer class="site-footer" style="background: var(--dark); color: white; padding: 3rem 0 0 0; margin-top: 4rem; border-top: 4px solid var(--primary);">
+        <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 0 1.5rem 2.5rem 1.5rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 2.5rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+            <div>
+                <h3 style="color: white; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 8px;">DanFam Market</h3>
+                <p style="color: #cbd5e1; font-size: 0.9rem; line-height: 1.6;">
+                    Connecting smallholder farmers directly to households, hotels, schools, and exporters across Kenya.
+                </p>
+            </div>
+
+            <div>
+                <h4 style="color: white; margin-bottom: 0.75rem; font-size: 1.1rem;">Quick Navigation</h4>
+                <ul style="list-style: none; display: flex; flex-direction: column; gap: 0.5rem; padding: 0;">
+                    <li><a href="catalogue.php" style="color: #cbd5e1; text-decoration: none;">Produce Catalogue</a></li>
+                    <li><a href="login.php" style="color: #cbd5e1; text-decoration: none;">User Login / Register</a></li>
+                    <li><a href="cart.php" style="color: #cbd5e1; text-decoration: none;">Shopping Cart</a></li>
+                    <li><a href="farmer_dashboard.php" style="color: #cbd5e1; text-decoration: none;">Farmer Dashboard</a></li>
+                      <li><a href="checkout.php" style="color: #cbd5e1; text-decoration: none;">checkout</a></li>
+                    <li><a href="register.php" class="btn btn-outline">🚜 Register as Farmer</a></li>
+                </ul>
+            </div>
+
+            <div>
+                <h4 style="color: white; margin-bottom: 0.75rem; font-size: 1.1rem;">Contact & Support</h4>
+                <p style="color: #cbd5e1; font-size: 0.9rem; margin-bottom: 0.4rem;">📍 Awendo| Kisii-Kehancha Road, Kenya</p>
+                <p style="color: #cbd5e1; font-size: 0.9rem; margin-bottom: 0.4rem;">📧 support@DanFam.co.ke</p>
+                <p style="color: #cbd5e1; font-size: 0.9rem;">📞 +254 700 123 456</p>
+            </div>
+        </div>
+
+        <div style="text-align: center; padding: 1.25rem; background: #0f172a; color: #94a3b8; font-size: 0.85rem;">
+            <p>&copy; 2026 DanFam Market. All Rights Reserved. Empowering Sustainable Agribusiness.</p>
+        </div>
+    </footer>
+
+    <script src="main.js"></script>
+</body>
+</html>

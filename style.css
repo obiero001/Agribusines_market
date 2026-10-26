@@ -1,0 +1,282 @@
+
+:root {
+    /* Brand Colors */
+    --primary: #1b5e20;         /* Deep Forest Green */
+    --primary-light: #2e7d32;   /* Vibrant Harvest Green */
+    --primary-soft: #e8f5e9;    /* Soft Meadow Tint */
+    
+    --accent: #f57c00;          /* Warm Sun Gold / Amber */
+    --accent-hover: #e65100;    /* Deep Sun Gold */
+    --accent-soft: #fff3e0;     /* Light Amber Tint */
+
+    /* Neutral & Background Tones */
+    --dark: #0f172a;            /* Dark Slate for Typography */
+    --text-muted: #64748b;      /* Muted Subtitle Gray */
+    --gray-bg: #f8fafc;         /* Page Body Background */
+    --gray-light: #f1f5f9;      /* Card/Input Background */
+    --gray-border: #e2e8f0;     /* Soft Divider Border */
+    --white: #ffffff;
+
+    /* Status & Badge Colors */
+    --status-placed: #0284c7;   /* Sky Blue */
+    --status-placed-bg: #e0f2fe;
+    --status-confirmed: #059669;/* Mint Emerald */
+    --status-confirmed-bg: #d1fae5;
+    --status-dispatched: #d97706;/* Warm Amber */
+    --status-dispatched-bg: #fef3c7;
+    --status-delivered: #15803d; /* Rich Dark Green */
+    --status-delivered-bg: #dcfce7;
+    --status-rejected: #dc2626; /* Crimson Red */
+    --status-rejected-bg: #fee2e2;
+
+    /* UI Layout Tokens */
+    --radius: 8px;
+    --radius-lg: 14px;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 2. BASE RESET & TYPOGRAPHY */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    background-color: var(--gray-bg);
+    color: var(--dark);
+    line-height: 1.6;
+    font-size: 1rem;
+    -webkit-font-smoothing: antialiased;
+}
+
+a {
+    color: var(--primary);
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+a:hover {
+    color: var(--primary-light);
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* 3. CONTAINERS & LAYOUT UTILITIES */
+.container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1.25rem;
+}
+
+/* Grid System */
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+/* 4. BUTTON COMPONENTS */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1.35rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    border-radius: var(--radius);
+    border: 1px solid transparent;
+    cursor: pointer;
+    text-decoration: none;
+    transition: var(--transition);
+    text-align: center;
+    white-space: nowrap;
+}
+
+.btn-primary {
+    background-color: var(--primary);
+    color: var(--white);
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-light);
+    color: var(--white);
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-accent {
+    background-color: var(--accent);
+    color: var(--white);
+}
+
+.btn-accent:hover {
+    background-color: var(--accent-hover);
+    color: var(--white);
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-outline {
+    background-color: transparent;
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.btn-outline:hover {
+    background-color: var(--primary-soft);
+}
+
+/* 5. CARD COMPONENTS & PRODUCE CARDS */
+.card {
+    background-color: var(--white);
+    border: 1px solid var(--gray-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    transition: var(--transition);
+}
+
+.card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+.produce-card img {
+    width: 100%;
+    height: 190px;
+    object-fit: cover;
+    border-bottom: 1px solid var(--gray-border);
+}
+
+/* 6. FORMS & CONTROL STYLING */
+.form-group {
+    margin-bottom: 1.25rem;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.4rem;
+    font-size: 0.9rem;
+    color: var(--dark);
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-size: 0.95rem;
+    font-family: inherit;
+    color: var(--dark);
+    background-color: var(--white);
+    border: 1px solid var(--gray-border);
+    border-radius: var(--radius);
+    transition: var(--transition);
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(27, 94, 32, 0.15);
+}
+
+textarea.form-control {
+    resize: vertical;
+    min-height: 100px;
+}
+
+/* 7. STATUS BADGES */
+.badge {
+    display: inline-block;
+    padding: 0.25rem 0.65rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    border-radius: 50px;
+    text-transform: capitalize;
+    letter-spacing: 0.3px;
+}
+
+.badge-placed, .badge-pending {
+    background-color: var(--status-placed-bg);
+    color: var(--status-placed);
+}
+
+.badge-confirmed, .badge-approved {
+    background-color: var(--status-confirmed-bg);
+    color: var(--status-confirmed);
+}
+
+.badge-dispatched {
+    background-color: var(--status-dispatched-bg);
+    color: var(--status-dispatched);
+}
+
+.badge-delivered {
+    background-color: var(--status-delivered-bg);
+    color: var(--status-delivered);
+}
+
+.badge-rejected {
+    background-color: var(--status-rejected-bg);
+    color: var(--status-rejected);
+}
+
+/* 8. DATA TABLES */
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 0.95rem;
+}
+
+th {
+    background-color: var(--gray-light);
+    color: var(--dark);
+    font-weight: 700;
+    padding: 0.85rem 1rem;
+    border-bottom: 2px solid var(--gray-border);
+    white-space: nowrap;
+}
+
+td {
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--gray-border);
+    vertical-align: middle;
+}
+
+tr:hover td {
+    background-color: #f8fafc;
+}
+
+/* 9. RESPONSIVE BREAKPOINTS */
+@media (max-width: 768px) {
+    .grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+    
+    th, td {
+        padding: 0.65rem 0.75rem;
+        font-size: 0.88rem;
+    }
+}
