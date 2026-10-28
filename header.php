@@ -135,9 +135,9 @@ $current_page = basename($_SERVER['PHP_SELF']);
         <!-- 2. Distributed Navigation Links -->
         <nav>
             <ul class="nav-menu">
-                                   <li><a href="index.html" class="nav-link active">🏠 Home</a></li>
-                    <li><a href="catalogue.php" class="nav-link active">🌾 Catalogue</a></li>
-                    <li><a href="farmer_dashboard.php" class="nav-link active">🚜 Farmer Portal</a></li>
+                                   <li><a href="index.html" class="nav-link active">Home</a></li>
+                    <li><a href="catalogue.php" class="nav-link active"> Catalogue</a></li>
+                    <li><a href="farmer_dashboard.php" class="nav-link active">Farmer Portal</a></li>
                     <li><a href="admin_dashboard.php" class="nav-link active">⚙️ Admin</a></li>
                     
                 <!-- Role-Based Navigation Routing -->
@@ -145,7 +145,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                     <?php if ($_SESSION['user_role'] === 'Farmer'): ?>
                         <li>
                             <a href="farmer_dashboard.php" class="nav-link <?= $current_page === 'farmer_dashboard.php' ? 'active' : '' ?>">
-                                🚜 Farmer Portal
+                                Farmer Portal
                             </a>
                         </li>
                         <li>
