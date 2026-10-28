@@ -8,7 +8,7 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once 'config.php';
 require_once 'functions.php';
 
-// Only allow POST requests
+// Only allow POST requests sawa
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     redirect('register.php');
 }
