@@ -99,7 +99,7 @@ $categories = $categories_stmt->fetchAll();
                         <div class="form-group">
                             <label for="name">Produce Name</label>
                             <input type="text" id="name" name="name" class="form-control" required placeholder="e.g. Fresh Sukuma Wiki / Cabbages">
-                            <div class="help-text">Specify crop variety if applicable (e.g., Hass Avocados).</div>
+                            <div class="help-text">Specify crop variety if applicable (e.g Hass Avocados).</div>
                         </div>
 
                         <div class="form-group">
@@ -145,12 +145,13 @@ $categories = $categories_stmt->fetchAll();
                                 <option value="crate">Crate</option>
                                 <option value="piece">Piece</option>
                                 <option value="tonne">Tonne</option>
+                                
                             </select>
                         </div>
 
                         <div class="form-group">
                             <label for="location">Farm Location / County</label>
-                            <input type="text" id="location" name="location" class="form-control" required placeholder="e.g. Kiambu, Limuru">
+                            <input type="text" id="location" name="location" class="form-control" required placeholder="e.g. Kisii, kisumu, migori">
                             <div class="help-text">Region or county where produce is harvested.</div>
                         </div>
                     </div>
@@ -163,7 +164,7 @@ $categories = $categories_stmt->fetchAll();
 
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2.5rem; border-top: 1px solid var(--gray-border); padding-top: 1.5rem;">
                         <a href="farmer_dashboard.php" class="btn btn-outline">&larr; Back to Dashboard</a>
-                        <button type="submit" class="btn btn-accent" style="padding: 0.75rem 2rem;">🚀 Submit Listing for Review</button>
+                        <button type="submit" class="btn btn-accent" style="padding: 0.75rem 2rem;">Submit Listing for Review</button>
                     </div>
                 </form>
             </div>
