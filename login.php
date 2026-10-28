@@ -115,7 +115,7 @@ include 'header.php';
             🔐 Sign In
         </a>
         <a href="login.php?action=register" class="btn" style="flex: 1; text-align: center; border-radius: 6px; text-decoration: none; padding: 0.6rem; font-weight: 600; <?= $action === 'register' ? 'background: #1b5e20; color: white;' : 'background: transparent; color: #0f172a;' ?>">
-            📝 Register Account
+            Register Account
         </a>
     </div>
 
