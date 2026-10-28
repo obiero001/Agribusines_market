@@ -182,7 +182,7 @@ require_once 'header.php';
 
         <!-- Table: My Produce Listings -->
         <div class="card card-body" style="margin-bottom: 3rem; padding: 2rem; background: white; border-radius: 8px; border: 1px solid #e2e8f0;">
-            <h3 class="section-title">📦 My Produce Listings</h3>
+            <h3 class="section-title"> My Produce Listings</h3>
             <div class="table-responsive">
                 <table style="width: 100%; border-collapse: collapse;">
                     <thead>
@@ -221,7 +221,7 @@ require_once 'header.php';
 
         <!-- Table: Incoming Orders -->
         <div class="card card-body" style="margin-bottom: 2rem; padding: 2rem; background: white; border-radius: 8px; border: 1px solid #e2e8f0;">
-            <h3 class="section-title">🚚 Orders Containing My Produce</h3>
+            <h3 class="section-title">Orders Containing My Produce</h3>
             <div class="table-responsive">
                 <table style="width: 100%; border-collapse: collapse;">
                     <thead>
