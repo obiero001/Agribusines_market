@@ -7,7 +7,7 @@ require_login();
 
 $error_message = '';
 $user_id = $_SESSION['user_id'];
-$user_name = $_SESSION['user_name'];
+$user_name = $_SESSION['user_name'] ?? 'Buyer';
 
 // Process POST form submission from checkout or cart
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
@@ -21,30 +21,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
     } elseif (empty($shipping_address)) {
         $error_message = "Please enter a valid delivery address across Kenya.";
     } else {
-        // Calculate Total
-        $total_amount = 0;
-        foreach ($cart_items as $item) {
-            $total_amount += floatval($item['price']) * intval($item['quantity']);
-        }
-
         try {
             $pdo->beginTransaction();
 
-            // 1. Insert Master Order
-            $stmt = $pdo->prepare("INSERT INTO orders (buyer_id, total_amount, shipping_address, status) VALUES (?, ?, ?, 'Placed')");
+            // Calculate Total & Verify Stock Availability
+            $total_amount = 0;
+            $verified_items = [];
+
+            foreach ($cart_items as $item) {
+                $produce_id = intval($item['id'] ?? 0);
+                $quantity = floatval($item['quantity'] ?? 0);
+                $price = floatval($item['price'] ?? 0);
+
+                if ($produce_id <= 0 || $quantity <= 0) {
+                    throw new Exception("Invalid item data in cart.");
+                }
+
+                // Check produce status and available stock
+                $stmt_check = $pdo->prepare("SELECT price_per_unit, quantity_available FROM produce WHERE produce_id = ? AND status = 'Approved'");
+                $stmt_check->execute([$produce_id]);
+                $produce = $stmt_check->fetch();
+
+                if (!$produce || floatval($produce['quantity_available']) < $quantity) {
+                    throw new Exception("One or more items in your cart are out of stock or no longer available.");
+                }
+
+                $subtotal = $price * $quantity; // Fixed multiplication syntax
+                $total_amount += $subtotal;
+
+                $verified_items[] = [
+                    'produce_id' => $produce_id,
+                    'quantity' => $quantity,
+                    'price' => $price,
+                    'subtotal' => $subtotal
+                ];
+            }
+
+            // 1. Insert Master Order (Using 'order_status' matching database schema)
+            $stmt = $pdo->prepare("INSERT INTO orders (buyer_id, total_amount, shipping_address, order_status) VALUES (?, ?, ?, 'Placed')");
             $stmt->execute([$user_id, $total_amount, $shipping_address]);
             $order_id = $pdo->lastInsertId();
 
-            // 2. Insert Line Items
-            $stmt_item = $pdo->prepare("INSERT INTO order_items (order_id, produce_id, quantity, unit_price, subtotal) VALUES (?, ?, ?, ?, ?)");
-            foreach ($cart_items as $item) {
-                $subtotal = floatval($item['price']) * intval($item['quantity']);
+            // 2. Insert Line Items & Deduct Stock
+            $stmt_item = $pdo->prepare("INSERT INTO order_items (order_id, produce_id, quantity, price_at_purchase) VALUES (?, ?, ?, ?)");
+            $stmt_stock = $pdo->prepare("UPDATE produce SET quantity_available = quantity_available - ? WHERE produce_id = ?");
+
+            foreach ($verified_items as $item) {
                 $stmt_item->execute([
                     $order_id,
-                    intval($item['id']),
-                    floatval($item['quantity']),
-                    floatval($item['price']),
-                    $subtotal
+                    $item['produce_id'],
+                    $item['quantity'],
+                    $item['price']
+                ]);
+
+                $stmt_stock->execute([
+                    $item['quantity'],
+                    $item['produce_id']
                 ]);
             }
 
@@ -58,7 +90,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
             exit;
 
         } catch (Exception $e) {
-            $pdo->rollBack();
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
             $error_message = "Order placement failed: " . $e->getMessage();
         }
     }
@@ -78,7 +112,7 @@ include 'header.php';
 
     <div class="card card-body" style="padding: 2.5rem; border-top: 5px solid var(--primary, #1b5e20);">
         <h2 style="color: var(--dark, #0f172a); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 8px;">
-            🚚 Order Checkout
+            Order Checkout
         </h2>
         <p style="color: var(--text-muted, #64748b); font-size: 0.95rem; margin-bottom: 2rem;">
             Review your order summary and confirm delivery information below.
@@ -109,7 +143,7 @@ include 'header.php';
                 <label for="address" style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: var(--dark, #0f172a);">
                     Delivery Address / Location in Kenya *
                 </label>
-                <textarea name="address" id="address" required rows="3" class="form-control" placeholder="e.g. Kiambu Town, Commercial Street, Plaza Building, Door 4" style="width: 100%; padding: 0.8rem; border: 1px solid var(--gray-border, #e2e8f0); border-radius: var(--radius, 6px); font-size: 0.95rem;"></textarea>
+                <textarea name="address" id="address" required rows="3" class="form-control" placeholder="e.g. Thika Town, Commercial Street, Plaza Building, Door 4" style="width: 100%; padding: 0.8rem; border: 1px solid var(--gray-border, #e2e8f0); border-radius: var(--radius, 6px); font-size: 0.95rem;"></textarea>
                 <small style="color: var(--text-muted, #64748b); font-size: 0.85rem; display: block; margin-top: 0.3rem;">
                     Specify your preferred delivery spot (Hotel, Household, School, or Market Hub).
                 </small>
@@ -117,7 +151,7 @@ include 'header.php';
 
             <!-- Order Items Preview -->
             <div style="margin-bottom: 2rem;">
-                <h4 style="margin-bottom: 0.8rem; color: var(--dark, #0f172a);">📦 Items in Checkout</h4>
+                <h4 style="margin-bottom: 0.8rem; color: var(--dark, #0f172a);">Items in Checkout</h4>
                 <div id="checkout-items-preview" style="background: white; border: 1px solid var(--gray-border, #e2e8f0); border-radius: var(--radius, 6px); padding: 1rem;">
                     <!-- Dynamically populated via JS -->
                 </div>
@@ -128,7 +162,7 @@ include 'header.php';
                 <a href="cart.php" style="color: var(--text-muted, #64748b); text-decoration: none; font-size: 0.9rem;">
                     Edit Cart
                 </a>
-                <button type="submit" class="btn btn-accent" style="padding: 0.85rem 2.5rem; font-size: 1.05rem; font-weight: 700;">
+                <button type="submit" class="btn btn-accent" style="padding: 0.85rem 2.5rem; font-size: 1.05rem; font-weight: 700; background: #1b5e20; color: white; border: none; border-radius: 6px; cursor: pointer;">
                     ✅ Place Order & Generate Invoice
                 </button>
             </div>
@@ -150,7 +184,7 @@ include 'header.php';
         let total = 0;
         let html = '<ul style="list-style:none; padding:0; margin:0;">';
         cart.forEach(item => {
-            let subtotal = item.price * item.quantity;
+            let subtotal = Number(item.price) * Number(item.quantity);
             total += subtotal;
             html += `<li style="display:flex; justify-content:space-between; padding:0.5rem 0; border-bottom:1px solid #f1f5f9;">
                         <span><strong>${item.name}</strong> x ${item.quantity}</span>
