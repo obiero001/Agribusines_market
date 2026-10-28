@@ -18,7 +18,7 @@ define('APP_NAME', 'AgriConnect Kenya');
 define('APP_URL', 'http://localhost/agriconnect');
 
 // Database Credentials
-define('DB_HOST', 'localhost');
+define('DB_HOST', '127.0.0.1');
 define('DB_NAME', 'danfam_market'); 
 define('DB_USER', 'root');
 define('DB_PASS', '');
