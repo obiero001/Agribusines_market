@@ -17,7 +17,7 @@ $action = $_POST['action'] ?? $_GET['action'] ?? '';
 try {
     switch ($action) {
         case 'create':
-            // Admin creates a new user
+            // Admin creates a new user sure
             $name     = sanitize_input($_POST['name']);
             $email    = filter_var($_POST['email'], FILTER_SANITIZE_EMAIL);
             $password = password_hash($_POST['password'], PASSWORD_BCRYPT);
@@ -30,7 +30,7 @@ try {
             break;
 
         case 'update':
-            // Admin updates an existing user
+            // Admin updates an existing user okay
             $id       = intval($_POST['id']);
             $name     = sanitize_input($_POST['name']);
             $email    = filter_var($_POST['email'], FILTER_SANITIZE_EMAIL);
@@ -49,7 +49,7 @@ try {
             break;
 
         case 'delete':
-            // Admin deletes a user
+            // Admin deletes a user sawa
             $id = intval($_GET['id']);
             // Prevent admin from deleting themselves
             if ($id === $_SESSION['user_id']) {
