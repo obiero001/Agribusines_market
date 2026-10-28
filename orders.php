@@ -91,7 +91,7 @@ require_once 'header.php';
     <!-- Page Header & Navigation -->
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 2px solid var(--gray-border, #e2e8f0); padding-bottom: 1rem;">
         <div>
-            <h2 style="color: var(--dark, #0f172a); margin-bottom: 0.2rem;">📦 Order Management & Tracking</h2>
+            <h2 style="color: var(--dark, #0f172a); margin-bottom: 0.2rem;">Order Management & Tracking</h2>
             <p style="color: var(--text-muted, #64748b); font-size: 0.95rem; margin: 0;">
                 <?= $user_role === 'Buyer' ? 'Track your active and past produce bookings.' : 'Monitor direct crop orders placed by buyers across Kenya.' ?>
             </p>
