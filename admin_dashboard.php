@@ -7,13 +7,13 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require_once 'config.php';
 
-// Role Guard: Require Administrator Access (Must run BEFORE any output/header.php)
+// Role Guard: Require Administrator Access 
 if (!isset($_SESSION['user_id']) || ($_SESSION['user_role'] ?? '') !== 'Administrator') {
     header('Location: login.php');
     exit;
 }
 
-// Now it is safe to include the header since checks passed and no output has occurred
+
 include 'header.php';
 
 // Fetch System Summary Metrics
