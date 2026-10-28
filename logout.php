@@ -19,7 +19,7 @@ if (ini_get("session.use_cookies")) {
     );
 }
 
-// 3. Destroy the session completely on the server
+
 session_destroy();
 
 // 4. Redirect user back to login portal with an appropriate success message
