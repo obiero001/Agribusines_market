@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -12,7 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 // 1. Sanitize and Extract Input Data
-$name     = sanitize_input($_POST['name'] ?? '');
+$name     = sanitize_input($_POST['full_name'] ?? '');
 $email    = filter_var($_POST['email'] ?? '', FILTER_SANITIZE_EMAIL);
 $password = $_POST['password'] ?? '';
 $role     = sanitize_input($_POST['role'] ?? 'Buyer');
@@ -35,26 +37,35 @@ if (strlen($password) < 6) {
     redirect('register.php');
 }
 
-if (!in_array($role, $allowed_roles)) {
+if (!in_array($role, $allowed_roles, true)) {
     $_SESSION['reg_error'] = "Invalid account role selected.";
     redirect('register.php');
 }
 
-// 3. Check for Duplicate Email Entry
+// 3. Check for Duplicate Email Entry (Using correct user_id column)
 try {
-    $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
+    $stmt = $pdo->prepare("SELECT user_id FROM users WHERE email = ?");
     $stmt->execute([$email]);
     if ($stmt->fetch()) {
         $_SESSION['reg_error'] = "An account with this email address already exists.";
         redirect('register.php');
     }
 
-    // 4. Hash Password & Insert User
+    // Generate clean username from email prefix
+    $username = explode('@', $email)[0] . rand(100, 999);
+
+    // Farmers require Admin approval (is_approved = 0), Buyers/Admins are approved (1)
+    $is_approved = ($role === 'Farmer') ? 0 : 1;
+
+    // 4. Hash Password & Insert User (Using correct full_name, password_hash, and is_approved columns)
     $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-    $insert_stmt = $pdo->prepare("INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)");
-    $insert_stmt->execute([$name, $email, $hashed_password, $role]);
+    $insert_stmt = $pdo->prepare("
+        INSERT INTO users (username, email, password_hash, full_name, role, is_approved) 
+        VALUES (?, ?, ?, ?, ?, ?)
+    ");
+    $insert_stmt->execute([$username, $email, $hashed_password, $name, $role, $is_approved]);
     
-    $new_user_id = $pdo->lastInsertId();
+    $new_user_id = (int)$pdo->lastInsertId();
 
     // 5. Automatic Session Authentication
     $_SESSION['user_id']    = $new_user_id;
@@ -81,4 +92,3 @@ try {
     $_SESSION['reg_error'] = "A system error occurred during registration. Please try again.";
     redirect('register.php');
 }
-?>

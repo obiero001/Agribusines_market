@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -83,13 +84,13 @@ function require_role($allowed_roles) {
     require_login();
     $roles = is_array($allowed_roles) ? $allowed_roles : [$allowed_roles];
     
-    if (!in_array($_SESSION['user_role'] ?? '', $roles)) {
+    if (!in_array($_SESSION['user_role'] ?? '', $roles, true)) {
         redirect('catalogue.php');
     }
 }
 
 /**
- * Register a new user into the database.
+ * Register a new user into the database (`danfam_market`) and auto-approve them.
  *
  * @param PDO $pdo
  * @param string $name
@@ -99,15 +100,35 @@ function require_role($allowed_roles) {
  * @return bool|string True on success, error message on failure
  */
 function register_user($pdo, $name, $email, $password, $role) {
-    $hashed_password = password_hash($password, PASSWORD_DEFAULT);
     try {
-        $stmt = $pdo->prepare("INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)");
-        $stmt->execute([sanitize_input($name), filter_var($email, FILTER_SANITIZE_EMAIL), $hashed_password, $role]);
-        return true;
-    } catch (PDOException $e) {
-        if ($e->getCode() == 23000) { // Duplicate entry
+        $checkStmt = $pdo->prepare("SELECT user_id FROM users WHERE email = ?");
+        $checkStmt->execute([$email]);
+        if ($checkStmt->fetch()) {
             return "Email address is already registered.";
         }
+
+        $username = explode('@', $email)[0] . rand(100, 999);
+        $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+        
+        // Auto-approve all newly registered roles (including Farmers) so they can log in immediately
+        $is_approved = 1;
+
+        $stmt = $pdo->prepare("
+            INSERT INTO users (username, email, password_hash, full_name, role, is_approved) 
+            VALUES (?, ?, ?, ?, ?, ?)
+        ");
+        
+        $stmt->execute([
+            $username,
+            filter_var($email, FILTER_SANITIZE_EMAIL),
+            $hashed_password,
+            sanitize_input($name),
+            $role,
+            $is_approved
+        ]);
+
+        return true;
+    } catch (PDOException $e) {
         return "Registration error: " . $e->getMessage();
     }
 }
@@ -123,7 +144,7 @@ function register_user($pdo, $name, $email, $password, $role) {
  * @return array
  */
 function admin_get_all_users($pdo) {
-    $stmt = $pdo->query("SELECT id, name, email, role, created_at FROM users ORDER BY id DESC");
+    $stmt = $pdo->query("SELECT user_id AS id, full_name AS name, email, role, is_approved, created_at FROM users ORDER BY user_id DESC");
     return $stmt->fetchAll();
 }
 
@@ -138,8 +159,8 @@ function admin_get_all_users($pdo) {
  * @return bool
  */
 function admin_update_user($pdo, $id, $name, $email, $role) {
-    $stmt = $pdo->prepare("UPDATE users SET name = ?, email = ?, role = ? WHERE id = ?");
-    return $stmt->execute([sanitize_input($name), filter_var($email, FILTER_SANITIZE_EMAIL), sanitize_input($role), intval($id)]);
+    $stmt = $pdo->prepare("UPDATE users SET full_name = ?, email = ?, role = ? WHERE user_id = ?");
+    return $stmt->execute([sanitize_input($name), filter_var($email, FILTER_SANITIZE_EMAIL), sanitize_input($role), (int)$id]);
 }
 
 /**
@@ -150,8 +171,8 @@ function admin_update_user($pdo, $id, $name, $email, $role) {
  * @return bool
  */
 function admin_delete_user($pdo, $id) {
-    $stmt = $pdo->prepare("DELETE FROM users WHERE id = ?");
-    return $stmt->execute([intval($id)]);
+    $stmt = $pdo->prepare("DELETE FROM users WHERE user_id = ?");
+    return $stmt->execute([(int)$id]);
 }
 
 /**
@@ -163,8 +184,8 @@ function admin_delete_user($pdo, $id) {
  * @return bool
  */
 function admin_update_produce_status($pdo, $produce_id, $status) {
-    $stmt = $pdo->prepare("UPDATE produce SET status = ? WHERE id = ?");
-    return $stmt->execute([sanitize_input($status), intval($produce_id)]);
+    $stmt = $pdo->prepare("UPDATE produce SET status = ? WHERE produce_id = ?");
+    return $stmt->execute([sanitize_input($status), (int)$produce_id]);
 }
 
 /**
@@ -175,8 +196,8 @@ function admin_update_produce_status($pdo, $produce_id, $status) {
  * @return bool
  */
 function admin_delete_produce($pdo, $produce_id) {
-    $stmt = $pdo->prepare("DELETE FROM produce WHERE id = ?");
-    return $stmt->execute([intval($produce_id)]);
+    $stmt = $pdo->prepare("DELETE FROM produce WHERE produce_id = ?");
+    return $stmt->execute([(int)$produce_id]);
 }
 
 /* ==========================================================================
@@ -191,8 +212,16 @@ function admin_delete_produce($pdo, $produce_id) {
  * @return array
  */
 function farmer_get_produce($pdo, $farmer_id) {
-    $stmt = $pdo->prepare("SELECT p.*, c.name AS category_name FROM produce p JOIN categories c ON p.category_id = c.id WHERE p.farmer_id = ? ORDER BY p.id DESC");
-    $stmt->execute([intval($farmer_id)]);
+    $stmt = $pdo->prepare("
+        SELECT p.produce_id AS id, p.produce_name AS name, p.description, p.price_per_unit AS price, 
+               p.unit, p.quantity_available AS quantity, p.location, p.photo_url AS image, p.status, 
+               c.category_name AS category_name 
+        FROM produce p 
+        JOIN categories c ON p.category_id = c.category_id 
+        WHERE p.farmer_id = ? 
+        ORDER BY p.produce_id DESC
+    ");
+    $stmt->execute([(int)$farmer_id]);
     return $stmt->fetchAll();
 }
 
@@ -206,15 +235,18 @@ function farmer_get_produce($pdo, $farmer_id) {
  * @return bool
  */
 function farmer_add_produce($pdo, $farmer_id, $data, $photo_path) {
-    $stmt = $pdo->prepare("INSERT INTO produce (farmer_id, category_id, name, description, price, unit, quantity, location, image, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending')");
+    $stmt = $pdo->prepare("
+        INSERT INTO produce (farmer_id, category_id, produce_name, description, price_per_unit, unit, quantity_available, location, photo_url, status) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending')
+    ");
     return $stmt->execute([
-        intval($farmer_id),
-        intval($data['category_id']),
+        (int)$farmer_id,
+        (int)$data['category_id'],
         sanitize_input($data['name']),
         sanitize_input($data['description']),
-        floatval($data['price']),
+        (float)$data['price'],
         sanitize_input($data['unit']),
-        floatval($data['quantity']),
+        (float)$data['quantity'],
         sanitize_input($data['location']),
         $photo_path
     ]);
@@ -230,17 +262,21 @@ function farmer_add_produce($pdo, $farmer_id, $data, $photo_path) {
  * @return bool
  */
 function farmer_update_produce($pdo, $produce_id, $farmer_id, $data) {
-    $stmt = $pdo->prepare("UPDATE produce SET category_id = ?, name = ?, description = ?, price = ?, unit = ?, quantity = ?, location = ? WHERE id = ? AND farmer_id = ?");
+    $stmt = $pdo->prepare("
+        UPDATE produce 
+        SET category_id = ?, produce_name = ?, description = ?, price_per_unit = ?, unit = ?, quantity_available = ?, location = ? 
+        WHERE produce_id = ? AND farmer_id = ?
+    ");
     return $stmt->execute([
-        intval($data['category_id']),
+        (int)$data['category_id'],
         sanitize_input($data['name']),
         sanitize_input($data['description']),
-        floatval($data['price']),
+        (float)$data['price'],
         sanitize_input($data['unit']),
-        floatval($data['quantity']),
+        (float)$data['quantity'],
         sanitize_input($data['location']),
-        intval($produce_id),
-        intval($farmer_id)
+        (int)$produce_id,
+        (int)$farmer_id
     ]);
 }
 
@@ -253,8 +289,8 @@ function farmer_update_produce($pdo, $produce_id, $farmer_id, $data) {
  * @return bool
  */
 function farmer_delete_produce($pdo, $produce_id, $farmer_id) {
-    $stmt = $pdo->prepare("DELETE FROM produce WHERE id = ? AND farmer_id = ?");
-    return $stmt->execute([intval($produce_id), intval($farmer_id)]);
+    $stmt = $pdo->prepare("DELETE FROM produce WHERE produce_id = ? AND farmer_id = ?");
+    return $stmt->execute([(int)$produce_id, (int)$farmer_id]);
 }
 
 /* ==========================================================================
@@ -270,22 +306,30 @@ function farmer_delete_produce($pdo, $produce_id, $farmer_id) {
  */
 function get_approved_produce($pdo, $search_term = '') {
     if (!empty($search_term)) {
-        $stmt = $pdo->prepare("SELECT p.*, c.name AS category_name, u.name AS farmer_name 
-                               FROM produce p 
-                               JOIN categories c ON p.category_id = c.id 
-                               JOIN users u ON p.farmer_id = u.id 
-                               WHERE p.status = 'Approved' 
-                               AND (p.name LIKE ? OR p.location LIKE ? OR c.name LIKE ?) 
-                               ORDER BY p.id DESC");
+        $stmt = $pdo->prepare("
+            SELECT p.produce_id AS id, p.produce_name AS name, p.description, p.price_per_unit AS price, 
+                   p.unit, p.quantity_available AS quantity, p.location, p.photo_url AS image, 
+                   c.category_name AS category_name, u.full_name AS farmer_name 
+            FROM produce p 
+            JOIN categories c ON p.category_id = c.category_id 
+            JOIN users u ON p.farmer_id = u.user_id 
+            WHERE p.status = 'Approved' 
+            AND (p.produce_name LIKE ? OR p.location LIKE ? OR c.category_name LIKE ?) 
+            ORDER BY p.produce_id DESC
+        ");
         $term = "%{$search_term}%";
         $stmt->execute([$term, $term, $term]);
     } else {
-        $stmt = $pdo->query("SELECT p.*, c.name AS category_name, u.name AS farmer_name 
-                             FROM produce p 
-                             JOIN categories c ON p.category_id = c.id 
-                             JOIN users u ON p.farmer_id = u.id 
-                             WHERE p.status = 'Approved' 
-                             ORDER BY p.id DESC");
+        $stmt = $pdo->query("
+            SELECT p.produce_id AS id, p.produce_name AS name, p.description, p.price_per_unit AS price, 
+                   p.unit, p.quantity_available AS quantity, p.location, p.photo_url AS image, 
+                   c.category_name AS category_name, u.full_name AS farmer_name 
+            FROM produce p 
+            JOIN categories c ON p.category_id = c.category_id 
+            JOIN users u ON p.farmer_id = u.user_id 
+            WHERE p.status = 'Approved' 
+            ORDER BY p.produce_id DESC
+        ");
     }
     return $stmt->fetchAll();
 }
@@ -298,12 +342,16 @@ function get_approved_produce($pdo, $search_term = '') {
  * @return array|false
  */
 function get_produce_by_id($pdo, $id) {
-    $stmt = $pdo->prepare("SELECT p.*, c.name AS category_name, u.name AS farmer_name, u.email AS farmer_email 
-                           FROM produce p 
-                           JOIN categories c ON p.category_id = c.id 
-                           JOIN users u ON p.farmer_id = u.id 
-                           WHERE p.id = ?");
-    $stmt->execute([intval($id)]);
+    $stmt = $pdo->prepare("
+        SELECT p.produce_id AS id, p.produce_name AS name, p.description, p.price_per_unit AS price, 
+               p.unit, p.quantity_available AS quantity, p.location, p.photo_url AS image, p.status, 
+               c.category_name AS category_name, u.full_name AS farmer_name, u.email AS farmer_email 
+        FROM produce p 
+        JOIN categories c ON p.category_id = c.category_id 
+        JOIN users u ON p.farmer_id = u.user_id 
+        WHERE p.produce_id = ?
+    ");
+    $stmt->execute([(int)$id]);
     return $stmt->fetch();
 }
 
@@ -319,7 +367,7 @@ function upload_produce_photo($file_array, $target_dir = 'uploads/') {
         $extension = strtolower(pathinfo($file_array['name'], PATHINFO_EXTENSION));
         $allowed = ['jpg', 'jpeg', 'png', 'webp'];
 
-        if (in_array($extension, $allowed)) {
+        if (in_array($extension, $allowed, true)) {
             if (!is_dir($target_dir)) {
                 mkdir($target_dir, 0755, true);
             }
@@ -346,11 +394,13 @@ function upload_produce_photo($file_array, $target_dir = 'uploads/') {
  * @return array
  */
 function get_order_items($pdo, $order_id) {
-    $stmt = $pdo->prepare("SELECT oi.*, p.name AS produce_name, p.unit 
-                           FROM order_items oi 
-                           JOIN produce p ON oi.produce_id = p.id 
-                           WHERE oi.order_id = ?");
-    $stmt->execute([intval($order_id)]);
+    $stmt = $pdo->prepare("
+        SELECT oi.*, p.produce_name AS name, p.unit 
+        FROM order_items oi 
+        JOIN produce p ON oi.produce_id = p.produce_id 
+        WHERE oi.order_id = ?
+    ");
+    $stmt->execute([(int)$order_id]);
     return $stmt->fetchAll();
 }
 
@@ -362,8 +412,8 @@ function get_order_items($pdo, $order_id) {
  * @return array
  */
 function buyer_get_orders($pdo, $buyer_id) {
-    $stmt = $pdo->prepare("SELECT * FROM orders WHERE buyer_id = ? ORDER BY id DESC");
-    $stmt->execute([intval($buyer_id)]);
+    $stmt = $pdo->prepare("SELECT * FROM orders WHERE buyer_id = ? ORDER BY order_id DESC");
+    $stmt->execute([(int)$buyer_id]);
     return $stmt->fetchAll();
 }
 
@@ -389,6 +439,6 @@ function render_status_badge($status) {
  * @return string
  */
 function format_currency($amount) {
-    return 'KSh ' . number_format($amount, 2);
+    return 'KSh ' . number_format((float)$amount, 2);
 }
 ?>

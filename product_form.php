@@ -19,7 +19,7 @@ $categories = $categories_stmt->fetchAll();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Post Produce - AgriConnect Kenya</title>
+    <title>DanFam Market</title>
     <link rel="stylesheet" href="style.css">
     <style>
         .form-container {
@@ -76,7 +76,7 @@ $categories = $categories_stmt->fetchAll();
 </head>
 <body>
     <header>
-        <a href="catalogue.php" class="logo">🌱 AgriConnect Kenya</a>
+        <a href="catalogue.php" class="logo">DanFam Market</a>
         <nav>
             <a href="catalogue.php">Catalogue</a>
             <a href="farmer_dashboard.php">Farmer Portal</a>
@@ -87,7 +87,7 @@ $categories = $categories_stmt->fetchAll();
     <div class="container">
         <div class="form-container">
             <div class="form-header">
-                <h2>🌾 List New Farm Produce</h2>
+                <h2> List New Farm Produce</h2>
                 <p style="opacity: 0.9; margin-top: 0.5rem; font-size: 0.95rem;">Fill out the details below to make your harvest visible to verified buyers across Kenya.</p>
             </div>
 
@@ -106,6 +106,14 @@ $categories = $categories_stmt->fetchAll();
                             <label for="category_id">Produce Category</label>
                             <select id="category_id" name="category_id" class="form-control" required>
                                 <option value="">-- Select Category --</option>
+                               <option value="Vegetables" <?= (isset($_POST['category']) && $_POST['category'] === 'Vegetables') ? 'selected' : '' ?>> Fresh Vegetables</option>
+                               <option value="Fruits" <?= (isset($_POST['category']) && $_POST['category'] === 'Fruits') ? 'selected' : '' ?>>Fruits & Berries</option>
+                              <option value="Cereals & Grains" <?= (isset($_POST['category']) && $_POST['category'] === 'Cereals & Grains') ? 'selected' : '' ?>>Cereals & Grains (Maize, Rice, Beans)</option>
+                              <option value="Tubers & Roots" <?= (isset($_POST['category']) && $_POST['category'] === 'Tubers & Roots') ? 'selected' : '' ?>>Tubers & Roots (Potatoes, Cassava)</option>
+                             <option value="Dairy & Livestock" <?= (isset($_POST['category']) && $_POST['category'] === 'Dairy & Livestock') ? 'selected' : '' ?>>Dairy & Livestock Products</option>
+                             <option value="Poultry & Eggs" <?= (isset($_POST['category']) && $_POST['category'] === 'Poultry & Eggs') ? 'selected' : '' ?>>Poultry & Eggs</option>
+                             <option value="Fish & Aquaculture" <?= (isset($_POST['category']) && $_POST['category'] === 'Fish & Aquaculture') ? 'selected' : '' ?>>Fish & Aquaculture</option>
+                             <option value="Cash Crops" <?= (isset($_POST['category']) && $_POST['category'] === 'Cash Crops') ? 'selected' : '' ?>>Cash Crops (Tea, Coffee, Sugarcane)</option>
                                 <?php foreach ($categories as $cat): ?>
                                     <option value="<?= $cat['id'] ?>"><?= htmlspecialchars($cat['name']) ?></option>
                                 <?php endforeach; ?>
@@ -133,9 +141,9 @@ $categories = $categories_stmt->fetchAll();
                             <label for="unit">Unit of Measure</label>
                             <select id="unit" name="unit" class="form-control" required>
                                 <option value="kg">Kilogram (kg)</option>
-                                <option value="bag">Bag / Sack</option>
+                                <option value="bag">Bag</option>
                                 <option value="crate">Crate</option>
-                                <option value="piece">Piece / Bunch</option>
+                                <option value="piece">Piece</option>
                                 <option value="tonne">Tonne</option>
                             </select>
                         </div>
@@ -163,7 +171,7 @@ $categories = $categories_stmt->fetchAll();
     </div>
 
     <footer>
-        <p>&copy; 2026 AgriConnect Kenya. Farmer Portal.</p>
+        <p>&copy; 2026 DanFam Market. Farmer Portal.</p>
     </footer>
 </body>
 </html>
