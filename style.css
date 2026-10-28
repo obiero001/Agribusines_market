@@ -1,32 +1,32 @@
 
 :root {
     /* Brand Colors */
-    --primary: #1b5e20;         /* Deep Forest Green */
-    --primary-light: #2e7d32;   /* Vibrant Harvest Green */
-    --primary-soft: #e8f5e9;    /* Soft Meadow Tint */
+    --primary: #1b5e20;         
+    --primary-light: #2e7d32;   
+    --primary-soft: #e8f5e9;    
     
-    --accent: #f57c00;          /* Warm Sun Gold / Amber */
-    --accent-hover: #e65100;    /* Deep Sun Gold */
-    --accent-soft: #fff3e0;     /* Light Amber Tint */
+    --accent: #f57c00;         
+    --accent-hover: #e65100;    
+    --accent-soft: #fff3e0;     
 
     /* Neutral & Background Tones */
-    --dark: #0f172a;            /* Dark Slate for Typography */
-    --text-muted: #64748b;      /* Muted Subtitle Gray */
-    --gray-bg: #f8fafc;         /* Page Body Background */
-    --gray-light: #f1f5f9;      /* Card/Input Background */
-    --gray-border: #e2e8f0;     /* Soft Divider Border */
+    --dark: #0f172a;            
+    --text-muted: #64748b;      
+    --gray-bg: #f8fafc;         
+    --gray-light: #f1f5f9;      
+    --gray-border: #e2e8f0;     
     --white: #ffffff;
 
     /* Status & Badge Colors */
-    --status-placed: #0284c7;   /* Sky Blue */
+    --status-placed: #0284c7;  
     --status-placed-bg: #e0f2fe;
-    --status-confirmed: #059669;/* Mint Emerald */
+    --status-confirmed: #059669;
     --status-confirmed-bg: #d1fae5;
-    --status-dispatched: #d97706;/* Warm Amber */
+    --status-dispatched: #d97706;
     --status-dispatched-bg: #fef3c7;
-    --status-delivered: #15803d; /* Rich Dark Green */
+    --status-delivered: #15803d; 
     --status-delivered-bg: #dcfce7;
-    --status-rejected: #dc2626; /* Crimson Red */
+    --status-rejected: #dc2626; 
     --status-rejected-bg: #fee2e2;
 
     /* UI Layout Tokens */
