@@ -95,7 +95,7 @@ include 'header.php';
             <div class="form-group" style="margin-bottom: 1.5rem;">
                 <label for="role" style="display: block; font-weight: 600; margin-bottom: 0.4rem; font-size: 0.9rem;"> Role *</label>
                 <select id="role" name="role" required style="width: 100%; padding: 0.75rem; border: 1px solid #cbd5e1; border-radius: 6px; background: white;">
-                    <option value="Buyer">🛒 Buyer (Household, Hotel, School)</option>
+                    <option value="Buyer">🛒 Buyer (Household, Hotel, School,Supermarkets)</option>
                     <option value="Farmer">👨‍🌾 Smallholder Farmer (Producer / Seller)</option>
                     <option value="Administrator">⚙️ System Administrator</option>
                 </select>
