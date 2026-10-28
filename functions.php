@@ -7,45 +7,41 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require_once 'config.php';
 
-/* ==========================================================================
-   1. SECURITY & SANITIZATION HELPERS
-   ========================================================================== */
 
-/**
- * Sanitize string input to prevent XSS attacks.
- *
- * @param string $data
- * @return string
- */
+//    1. SECURITY & SANITIZATION HELPERS
+  
+
+//  Sanitize string input to prevent XSS attacks.
+
+//   @param string $data
+//   @return string
+ 
 function sanitize_input($data) {
     return htmlspecialchars(trim($data), ENT_QUOTES, 'UTF-8');
 }
 
-/**
- * Redirect to a specified URL and terminate script execution.
- *
- * @param string $url
- */
+//  Redirect to a specified URL and terminate script execution.
+ 
+//  @param string $url
+ 
 function redirect($url) {
     header("Location: " . $url);
     exit;
 }
 
-/**
- * Verify CSRF Token to protect against Cross-Site Request Forgery.
- *
- * @param string $token
- * @return bool
- */
+//  Verify CSRF Token to protect against Cross-Site Request Forgery.
+
+//   @param string $token
+//   @return bool
+ 
 function verify_csrf_token($token) {
     return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
 }
 
-/**
- * Generate a new CSRF Token and store it in session.
- *
- * @return string
- */
+//  Generate a new CSRF Token and store it in session.
+ 
+//   @return string
+ 
 function generate_csrf_token() {
     if (empty($_SESSION['csrf_token'])) {
         $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -53,33 +49,29 @@ function generate_csrf_token() {
     return $_SESSION['csrf_token'];
 }
 
-/* ==========================================================================
-   2. AUTHENTICATION & SESSION GUARDS
-   ========================================================================== */
 
-/**
- * Check if a user is currently logged in.
- *
- * @return bool
- */
+//    2. AUTHENTICATION & SESSION GUARDS
+
+
+// Check if a user is currently logged in.
+ 
+//   @return bool
+ 
 function is_logged_in() {
     return isset($_SESSION['user_id']);
 }
 
-/**
- * Restrict access to logged-in users. Redirects to login if not authenticated.
- */
+// Restrict access to logged-in users. Redirects to login if not authenticated.
+ 
 function require_login() {
     if (!is_logged_in()) {
         redirect('login.php');
     }
 }
 
-/**
- * Restrict access to specific user roles (e.g., 'Farmer', 'Administrator', 'Buyer').
- *
- * @param array|string $allowed_roles
- */
+//  Restrict access to specific user roles (e.g., 'Farmer', 'Administrator', 'Buyer').
+//  @param array|string $allowed_roles
+ 
 function require_role($allowed_roles) {
     require_login();
     $roles = is_array($allowed_roles) ? $allowed_roles : [$allowed_roles];
@@ -89,16 +81,15 @@ function require_role($allowed_roles) {
     }
 }
 
-/**
- * Register a new user into the database (`danfam_market`) and auto-approve them.
- *
- * @param PDO $pdo
- * @param string $name
- * @param string $email
- * @param string $password
- * @param string $role
- * @return bool|string True on success, error message on failure
- */
+//  Register a new user into the database (`danfam_market`) and auto-approve them.
+
+//  @param PDO $pdo
+//   @param string $name
+//  @param string $email
+//   @param string $password
+//   @param string $role
+//   @return bool|string True on success, error message on failure
+ 
 function register_user($pdo, $name, $email, $password, $role) {
     try {
         $checkStmt = $pdo->prepare("SELECT user_id FROM users WHERE email = ?");
@@ -133,84 +124,78 @@ function register_user($pdo, $name, $email, $password, $role) {
     }
 }
 
-/* ==========================================================================
-   3. ADMINISTRATOR (FULL CRUD) FUNCTIONS
-   ========================================================================== */
 
-/**
- * Fetch all system users (Admin view).
- *
- * @param PDO $pdo
- * @return array
- */
+//    3. ADMINISTRATOR (FULL CRUD) FUNCTIONS
+  
+
+//  Fetch all system users (Admin view).
+ 
+//  *@param PDO $pdo
+//   @return array
+ 
 function admin_get_all_users($pdo) {
     $stmt = $pdo->query("SELECT user_id AS id, full_name AS name, email, role, is_approved, created_at FROM users ORDER BY user_id DESC");
     return $stmt->fetchAll();
 }
 
-/**
- * Admin updates user account details and role.
- *
- * @param PDO $pdo
- * @param int $id
- * @param string $name
- * @param string $email
- * @param string $role
- * @return bool
- */
+//  Admin updates user account details and role.
+ 
+//   @param PDO $pdo
+//   @param int $id
+//  @param string $name
+//  @param string $email
+//   @param string $role
+//   @return bool
+ 
 function admin_update_user($pdo, $id, $name, $email, $role) {
     $stmt = $pdo->prepare("UPDATE users SET full_name = ?, email = ?, role = ? WHERE user_id = ?");
     return $stmt->execute([sanitize_input($name), filter_var($email, FILTER_SANITIZE_EMAIL), sanitize_input($role), (int)$id]);
 }
 
-/**
- * Admin deletes a user from the system.
- *
- * @param PDO $pdo
- * @param int $id
- * @return bool
- */
+//  Admin deletes a user from the system.
+ 
+//  @param PDO $pdo
+//   @param int $id
+//  @return bool
+ 
 function admin_delete_user($pdo, $id) {
     $stmt = $pdo->prepare("DELETE FROM users WHERE user_id = ?");
     return $stmt->execute([(int)$id]);
 }
 
-/**
- * Admin updates the approval status of any produce listing.
- *
- * @param PDO $pdo
- * @param int $produce_id
- * @param string $status ('Approved', 'Pending', 'Rejected')
- * @return bool
- */
+//  Admin updates the approval status of any produce listing.
+ 
+//  @param PDO $pdo
+//   @param int $produce_id
+//   @param string $status ('Approved', 'Pending', 'Rejected')
+//   @return bool
+ 
 function admin_update_produce_status($pdo, $produce_id, $status) {
     $stmt = $pdo->prepare("UPDATE produce SET status = ? WHERE produce_id = ?");
     return $stmt->execute([sanitize_input($status), (int)$produce_id]);
 }
 
-/**
- * Admin deletes any produce listing.
- *
- * @param PDO $pdo
- * @param int $produce_id
- * @return bool
- */
+//  Admin deletes any produce listing.
+ 
+//   @param PDO $pdo
+//   @param int $produce_id
+//  @return bool
+ 
 function admin_delete_produce($pdo, $produce_id) {
     $stmt = $pdo->prepare("DELETE FROM produce WHERE produce_id = ?");
     return $stmt->execute([(int)$produce_id]);
 }
 
-/* ==========================================================================
-   4. FARMER PRODUCE & RESPONSIBILITY FUNCTIONS
-   ========================================================================== */
 
-/**
- * Fetch all produce items belonging to a specific farmer.
- *
- * @param PDO $pdo
- * @param int $farmer_id
- * @return array
- */
+//    4. FARMER PRODUCE & RESPONSIBILITY FUNCTIONS
+
+
+//  Fetch all produce items belonging to a specific farmer.
+ 
+//   @param PDO $pdo
+//   @param int $farmer_id
+//   @return array
+ 
 function farmer_get_produce($pdo, $farmer_id) {
     $stmt = $pdo->prepare("
         SELECT p.produce_id AS id, p.produce_name AS name, p.description, p.price_per_unit AS price, 
@@ -225,15 +210,14 @@ function farmer_get_produce($pdo, $farmer_id) {
     return $stmt->fetchAll();
 }
 
-/**
- * Farmer adds a new agricultural produce listing.
- *
- * @param PDO $pdo
- * @param int $farmer_id
- * @param array $data
- * @param string $photo_path
- * @return bool
- */
+//  Farmer adds a new agricultural produce listing.
+ 
+//   @param PDO $pdo
+//  @param int $farmer_id
+//   @param array $data
+//   @param string $photo_path
+//  @return bool
+ 
 function farmer_add_produce($pdo, $farmer_id, $data, $photo_path) {
     $stmt = $pdo->prepare("
         INSERT INTO produce (farmer_id, category_id, produce_name, description, price_per_unit, unit, quantity_available, location, photo_url, status) 
@@ -252,15 +236,13 @@ function farmer_add_produce($pdo, $farmer_id, $data, $photo_path) {
     ]);
 }
 
-/**
- * Farmer updates their own produce listing.
- *
- * @param PDO $pdo
- * @param int $produce_id
- * @param int $farmer_id
- * @param array $data
- * @return bool
- */
+//  Farmer updates their own produce listing.
+//  @param PDO $pdo
+//  @param int $produce_id
+//   @param int $farmer_id
+//   @param array $data
+//  @return bool
+ 
 function farmer_update_produce($pdo, $produce_id, $farmer_id, $data) {
     $stmt = $pdo->prepare("
         UPDATE produce 
@@ -280,30 +262,29 @@ function farmer_update_produce($pdo, $produce_id, $farmer_id, $data) {
     ]);
 }
 
-/**
- * Farmer deletes their own produce listing.
- *
- * @param PDO $pdo
- * @param int $produce_id
- * @param int $farmer_id
- * @return bool
- */
+//  Farmer deletes their own produce listing.
+ 
+//   @param PDO $pdo
+//   @param int $produce_id
+//   @param int $farmer_id
+// @return bool
+ 
 function farmer_delete_produce($pdo, $produce_id, $farmer_id) {
     $stmt = $pdo->prepare("DELETE FROM produce WHERE produce_id = ? AND farmer_id = ?");
     return $stmt->execute([(int)$produce_id, (int)$farmer_id]);
 }
 
-/* ==========================================================================
-   5. GENERAL PRODUCE MANAGEMENT FUNCTIONS
-   ========================================================================== */
 
-/**
- * Fetch all approved produce items for the public catalogue with optional search term.
- *
- * @param PDO $pdo
- * @param string $search_term
- * @return array
- */
+//    5. GENERAL PRODUCE MANAGEMENT FUNCTIONS
+  
+
+
+//   Fetch all approved produce items for the public catalogue with optional search term.
+ 
+//  @param PDO $pdo
+//  @param string $search_term
+//   @return array
+ 
 function get_approved_produce($pdo, $search_term = '') {
     if (!empty($search_term)) {
         $stmt = $pdo->prepare("
@@ -334,13 +315,12 @@ function get_approved_produce($pdo, $search_term = '') {
     return $stmt->fetchAll();
 }
 
-/**
- * Get detailed information for a specific produce item by ID.
- *
- * @param PDO $pdo
- * @param int $id
- * @return array|false
- */
+// Get detailed information for a specific produce item by ID.
+ 
+//   @param PDO $pdo
+//   @param int $id
+//  @return array|false
+ 
 function get_produce_by_id($pdo, $id) {
     $stmt = $pdo->prepare("
         SELECT p.produce_id AS id, p.produce_name AS name, p.description, p.price_per_unit AS price, 
@@ -355,13 +335,12 @@ function get_produce_by_id($pdo, $id) {
     return $stmt->fetch();
 }
 
-/**
- * Upload a produce photo safely.
- *
- * @param array $file_array
- * @param string $target_dir
- * @return string Path to saved image or default placeholder
- */
+//  Upload a produce photo safely.
+
+//   @param array $file_array
+//   @param string $target_dir
+//  @return string Path to saved image or default placeholder
+ 
 function upload_produce_photo($file_array, $target_dir = 'uploads/') {
     if (isset($file_array) && $file_array['error'] === UPLOAD_ERR_OK) {
         $extension = strtolower(pathinfo($file_array['name'], PATHINFO_EXTENSION));
@@ -382,17 +361,17 @@ function upload_produce_photo($file_array, $target_dir = 'uploads/') {
     return 'default_produce.jpg';
 }
 
-/* ==========================================================================
-   6. ORDER & BUYER FUNCTIONS
-   ========================================================================== */
 
-/**
- * Fetch all items belonging to a specific order ID.
- *
- * @param PDO $pdo
- * @param int $order_id
- * @return array
- */
+//    6. ORDER & BUYER FUNCTIONS
+   
+
+
+//  Fetch all items belonging to a specific order ID.
+ 
+//   @param PDO $pdo
+//  @param int $order_id
+//   @return array
+ 
 function get_order_items($pdo, $order_id) {
     $stmt = $pdo->prepare("
         SELECT oi.*, p.produce_name AS name, p.unit 
@@ -404,25 +383,23 @@ function get_order_items($pdo, $order_id) {
     return $stmt->fetchAll();
 }
 
-/**
- * Fetch orders placed by a specific buyer.
- *
- * @param PDO $pdo
- * @param int $buyer_id
- * @return array
- */
+// Fetch orders placed by a specific buyer.
+
+//   @param PDO $pdo
+//   @param int $buyer_id
+//   @return array
+ 
 function buyer_get_orders($pdo, $buyer_id) {
     $stmt = $pdo->prepare("SELECT * FROM orders WHERE buyer_id = ? ORDER BY order_id DESC");
     $stmt->execute([(int)$buyer_id]);
     return $stmt->fetchAll();
 }
 
-/**
- * Render a badge span element for order or produce statuses with consistent colors.
- *
- * @param string $status
- * @return string HTML span tag
- */
+//  Render a badge span element for order or produce statuses with consistent colors.
+ 
+//  @param string $status
+//   @return string HTML span tag
+ 
 function render_status_badge($status) {
     $status_clean = strtolower(sanitize_input($status));
     return sprintf(
@@ -432,12 +409,11 @@ function render_status_badge($status) {
     );
 }
 
-/**
- * Format currency values in Kenyan Shillings (KSh).
- *
- * @param float $amount
- * @return string
- */
+//  Format currency values in Kenyan Shillings (KSh).
+ 
+//   @param float $amount
+//   @return string
+ 
 function format_currency($amount) {
     return 'KSh ' . number_format((float)$amount, 2);
 }
