@@ -17,9 +17,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-/**
- * 1. CART MANAGEMENT FUNCTIONS
- */
+// 1. CART MANAGEMENT FUNCTIONS
+ 
 
 // Get current cart array from localStorage
 function getCart() {
@@ -79,9 +78,8 @@ function clearCart() {
     }
 }
 
-/**
- * 2. CART TABLE RENDERING (cart.php)
- */
+//  2. CART TABLE RENDERING (cart.php)
+ 
 
 function renderCartTable() {
     const tableBody = document.getElementById('cart-table-body');
@@ -160,9 +158,8 @@ function removeFromCart(index) {
     }
 }
 
-/**
- * 3. CHECKOUT PREPARATION (cart.php & checkout.php)
- */
+// 3. CHECKOUT PREPARATION (cart.php & checkout.php)
+ 
 
 function prepareCheckout(event) {
     const cart = getCart();
@@ -180,9 +177,8 @@ function prepareCheckout(event) {
     return true;
 }
 
-/**
- * 4. UI HELPERS & SEARCH
- */
+//  4. UI HELPERS & SEARCH
+ 
 
 function handleQuickSearch(e) {
     const query = e.target.value.toLowerCase().trim();
