@@ -269,7 +269,7 @@ $qrCodeApiUrl = "https://api.qrserver.com/v1/create-qr-code/?size=120x120&data="
                 <div style="display: flex; align-items: center; gap: 1rem; background: #f8fafc; padding: 0.75rem; border-radius: 8px; border: 1px solid #e2e8f0;">
                     <img src="<?= $qrCodeApiUrl ?>" alt="Official Verification QR Code" style="width: 85px; height: 85px; object-fit: contain;">
                     <div>
-                        <strong style="color: #1b5e20; font-size: 0.85rem; display: block; margin-bottom: 0.1rem;">Official DanFam Stamp</strong>
+                        <strong style="color: #1b5e20; font-size: 0.85rem; display: block; margin-bottom: 0.1rem;"> DanFam Official Stamp</strong>
                         <span style="color: #64748b; font-size: 0.75rem; line-height: 1.3; display: block;">Scan to verify authenticity & payment status on DanFam Market.</span>
                     </div>
                 </div>
