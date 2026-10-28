@@ -13,18 +13,16 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
 
-/**
- * Redirect and terminate execution.
- */
+// Redirect and terminate execution.
+ 
 function redirectTo(string $url): never
 {
     header('Location: ' . $url);
     exit;
 }
 
-/**
- * Stop the request with an HTTP status code.
- */
+// Stop the request with an HTTP status code.
+ 
 function stopRequest(string $message, int $status = 400): never
 {
     http_response_code($status);
@@ -59,9 +57,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     stopRequest('Method not allowed. Submit an appropriate form.', 405);
 }
 
-/**
- * Validate a positive integer ID or quantity.
- */
+//  Validate a positive integer ID or quantity.
+ 
 function positiveInt(mixed $value): int
 {
     $result = filter_var($value, FILTER_VALIDATE_INT);
@@ -71,9 +68,8 @@ function positiveInt(mixed $value): int
     return (int) $result;
 }
 
-/**
- * Validate a monetary amount.
- */
+// Validate a monetary amount.
+ 
 function validMoney(mixed $value): string
 {
     if (!is_scalar($value) || !is_numeric((string) $value)) {
@@ -127,7 +123,7 @@ try {
             $fileTmpPath = $_FILES['photo']['tmp_name'];
             $fileName = $_FILES['photo']['name'];
             $fileSize = $_FILES['photo']['size'];
-            
+
             $fileExtension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
             $allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'avif'];
             $maxFileSize = 5 * 1024 * 1024; // 5 MB limit
@@ -270,6 +266,80 @@ try {
             $stmt = $pdo->prepare("UPDATE orders SET order_status = ? WHERE order_id = ?");
             $stmt->execute([$newStatus, $orderId]);
             redirectTo('admin_dashboard.php?msg=order_updated');
+            break;
+
+        // --- 7. BUYER: PLACE ORDER / CHECKOUT CART ---
+        case 'checkout':
+        case 'place_order':
+            if (!in_array($userRole, ['Buyer', 'Administrator'], true)) {
+                stopRequest('Only buyers can place orders.', 403);
+            }
+            
+            $shippingAddress = trim((string)($_POST['shipping_address'] ?? ''));
+            if ($shippingAddress === '') {
+                redirectTo('cart.php?error=missing_address');
+            }
+
+            $cart = $_SESSION['cart'] ?? [];
+            if (empty($cart)) {
+                redirectTo('cart.php?error=empty_cart');
+            }
+
+            $pdo->beginTransaction();
+            try {
+                $totalAmount = 0;
+                $itemsData = [];
+
+                foreach ($cart as $produceId => $qty) {
+                    $produceId = (int)$produceId;
+                    $qty = (float)$qty;
+                    if ($qty <= 0) continue;
+
+                    $stmt = $pdo->prepare("SELECT price_per_unit, quantity_available FROM produce WHERE produce_id = ? AND status = 'Approved'");
+                    $stmt->execute([$produceId]);
+                    $produce = $stmt->fetch();
+
+                    if (!$produce || (float)$produce['quantity_available'] < $qty) {
+                        throw new Exception('Produce unavailable or insufficient stock.');
+                    }
+
+                    $price = (float)$produce['price_per_unit'];
+                    $subtotal = $price * $qty;
+                    $totalAmount += $subtotal;
+
+                    $itemsData[] = [
+                        'produce_id' => $produceId,
+                        'quantity' => $qty,
+                        'price' => $price
+                    ];
+                }
+
+                if (empty($itemsData)) {
+                    throw new Exception('Cart is empty or contains invalid items.');
+                }
+
+                $orderStmt = $pdo->prepare("INSERT INTO orders (buyer_id, total_amount, shipping_address, order_status) VALUES (?, ?, ?, 'Placed')");
+                $orderStmt->execute([$userId, $totalAmount, $shippingAddress]);
+                $orderId = (int)$pdo->lastInsertId();
+
+                $itemStmt = $pdo->prepare("INSERT INTO order_items (order_id, produce_id, quantity, price_at_purchase) VALUES (?, ?, ?, ?)");
+                $stockStmt = $pdo->prepare("UPDATE produce SET quantity_available = quantity_available - ? WHERE produce_id = ?");
+
+                foreach ($itemsData as $item) {
+                    $itemStmt->execute([$orderId, $item['produce_id'], $item['quantity'], $item['price']]);
+                    $stockStmt->execute([$item['quantity'], $item['produce_id']]);
+                }
+
+                unset($_SESSION['cart']);
+                
+                $pdo->commit();
+                redirectTo('buyer_dashboard.php?success=order_placed');
+
+            } catch (Exception $e) {
+                $pdo->rollBack();
+                error_log('[Checkout Error] ' . $e->getMessage());
+                redirectTo('cart.php?error=checkout_failed');
+            }
             break;
 
         default:
