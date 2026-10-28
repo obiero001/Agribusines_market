@@ -178,7 +178,7 @@
     </div>
 </footer>
 
-<!-- Include Global Client-Side Script -->
+
 <script src="main.js"></script>
 </body>
 </html>
