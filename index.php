@@ -178,7 +178,7 @@ try {
     </div>
 
     <footer style="background: white; border-top: 1px solid #e2e8f0; margin-top: 4rem; padding: 2rem 0; text-align: center; color: var(--text-muted); font-size: 0.9rem;">
-        <p>&copy; <?= date('Y') ?> DanFame Market. Empowering smallholder agricultural communities across Kiambu and beyond.</p>
+        <p>&copy; <?= date('Y') ?> DanFame Market. Empowering smallholder agricultural communities across Migori and beyond.</p>
     </footer>
 
 </body>
