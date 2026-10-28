@@ -128,11 +128,11 @@ $page_title = "Order Receipt #AGRI-" . str_pad((string)$order_id, 5, '0', STR_PA
             <div class="receipt-header">
                 <div>
                     <h2 style="color: #1b5e20; font-weight: 800; font-size: 1.8rem; margin-bottom: 0.2rem;">
-                        🌱 DanFam Market
+                        DanFam Market
                     </h2>
                     <p style="color: #64748b; font-size: 0.88rem; margin: 0; line-height: 1.4;">
                         Direct Smallholder Farmer-to-Buyer Marketplace<br>
-                        Thika / Kiambu County, Kenya<br>
+                        Migori/kehancha Road, Kenya<br>
                         Email: support@danfammarket.co.ke | Tel: +254 700 123 456
                     </p>
                 </div>
