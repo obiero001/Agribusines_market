@@ -38,7 +38,7 @@ if (!$product) {
 </head>
 <body>
     <header>
-        <a href="catalogue.php" class="logo">🌱 DanFam Market Kenya</a>
+        <a href="catalogue.php" class="logo">DanFam Market Kenya</a>
         <nav>
             <a href="catalogue.php">Catalogue</a>
             <a href="cart.php">Cart (<span id="cart-count">0</span>)</a>

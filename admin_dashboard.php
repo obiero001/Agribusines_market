@@ -13,7 +13,6 @@ if (!isset($_SESSION['user_id']) || ($_SESSION['user_role'] ?? '') !== 'Administ
     exit;
 }
 
-
 include 'header.php';
 
 // Fetch System Summary Metrics
@@ -216,7 +215,7 @@ $all_orders = $orders_stmt->fetchAll();
                             <th style="padding: 0.75rem;">Total Amount</th>
                             <th style="padding: 0.75rem;">Date</th>
                             <th style="padding: 0.75rem;">Current Status</th>
-                            <th style="padding: 0.75rem;">Update Lifecycle</th>
+                            <th style="padding: 0.75rem; text-align: center;">Update Lifecycle & Receipt</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -234,18 +233,26 @@ $all_orders = $orders_stmt->fetchAll();
                                     <td style="padding: 0.75rem;"><strong style="color: #1b5e20;">KSh <?= number_format((float)$ord['total_amount'], 2) ?></strong></td>
                                     <td style="padding: 0.75rem;"><small><?= date('Y-m-d H:i', strtotime($ord['created_at'])) ?></small></td>
                                     <td style="padding: 0.75rem;"><?= htmlspecialchars($ord['status']) ?></td>
-                                    <td style="padding: 0.75rem;">
-                                        <form action="process.php" method="POST" style="display: flex; gap: 6px; align-items: center;">
-                                            <input type="hidden" name="action" value="update_order_status">
-                                            <input type="hidden" name="order_id" value="<?= $ord['id'] ?>">
-                                            <select name="status" style="padding: 0.35rem; border-radius: 4px; border: 1px solid #cbd5e1; font-size: 0.85rem;">
-                                                <option value="Placed" <?= $ord['status'] === 'Placed' ? 'selected' : '' ?>>Placed</option>
-                                                <option value="Confirmed" <?= $ord['status'] === 'Confirmed' ? 'selected' : '' ?>>Confirmed</option>
-                                                <option value="Dispatched" <?= $ord['status'] === 'Dispatched' ? 'selected' : '' ?>>Dispatched</option>
-                                                <option value="Delivered" <?= $ord['status'] === 'Delivered' ? 'selected' : '' ?>>Delivered</option>
-                                            </select>
-                                            <button type="submit" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; background: #1b5e20; color: white; border: none; border-radius: 4px; cursor: pointer;">Save</button>
-                                        </form>
+                                    <td style="padding: 0.75rem; text-align: center;">
+                                        <div style="display: flex; gap: 6px; align-items: center; justify-content: center; flex-wrap: wrap;">
+                                            <!-- Status Update Form -->
+                                            <form action="process.php" method="POST" style="display: flex; gap: 4px; align-items: center; margin: 0;">
+                                                <input type="hidden" name="action" value="update_order_status">
+                                                <input type="hidden" name="order_id" value="<?= $ord['id'] ?>">
+                                                <select name="status" style="padding: 0.3rem; border-radius: 4px; border: 1px solid #cbd5e1; font-size: 0.82rem; background: #fff;">
+                                                    <option value="Placed" <?= $ord['status'] === 'Placed' ? 'selected' : '' ?>>Placed</option>
+                                                    <option value="Confirmed" <?= $ord['status'] === 'Confirmed' ? 'selected' : '' ?>>Confirmed</option>
+                                                    <option value="Dispatched" <?= $ord['status'] === 'Dispatched' ? 'selected' : '' ?>>Dispatched</option>
+                                                    <option value="Delivered" <?= $ord['status'] === 'Delivered' ? 'selected' : '' ?>>Delivered</option>
+                                                </select>
+                                                <button type="submit" style="padding: 0.3rem 0.6rem; font-size: 0.78rem; background: #1b5e20; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">Save</button>
+                                            </form>
+
+                                            <!-- Connected Receipt Link -->
+                                            <a href="admin_receipt.php?order_id=<?= (int)$ord['id'] ?>" class="btn btn-outline" style="font-size: 0.78rem; padding: 0.32rem 0.6rem; text-decoration: none; border: 1px solid #1b5e20; border-radius: 4px; color: #1b5e20; background: #f0fdf4; font-weight: 600;" target="_blank" title="View & Print Order Receipt">
+                                                🖨️ Receipt
+                                            </a>
+                                        </div>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

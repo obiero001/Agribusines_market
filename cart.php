@@ -24,10 +24,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cart_json'])) {
             // 1. Insert Master Order Record
             $stmt = $pdo->prepare("INSERT INTO orders (buyer_id, total_amount, shipping_address, order_status) VALUES (?, ?, ?, 'Placed')");
             $stmt->execute([$buyer_id, $total_amount, $address]);
+
+            // FIX 1: Retrieve lastInsertId BEFORE commit() so it returns the true order_id
             $order_id = $pdo->lastInsertId();
 
-            // 2. Insert Order Item Breakdowns & Deduct Stock
-            // Aligned with schema: price_at_purchase
+            // FIX 2: Aligned columns with database schema (price_at_purchase)
             $stmt_item = $pdo->prepare("INSERT INTO order_items (order_id, produce_id, quantity, price_at_purchase) VALUES (?, ?, ?, ?)");
             $stmt_stock = $pdo->prepare("UPDATE produce SET quantity_available = quantity_available - ? WHERE produce_id = ?");
 
@@ -47,9 +48,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cart_json'])) {
                 $stmt_stock->execute([$qty, $produce_id]);
             }
 
+            // Commit transaction after inserting all order items and getting the ID
             $pdo->commit();
             
-            // Render redirect script
+            // Clear browser local storage cart and redirect to receipt with valid ID
             include 'header.php';
             echo "<script>
                     localStorage.removeItem('agri_cart');
@@ -96,7 +98,7 @@ include 'header.php';
                     </tr>
                 </thead>
                 <tbody id="cart-table-body">
-                    <!-- Populated dynamically via JS -->
+                    <!-- Populated dynamically via JavaScript -->
                 </tbody>
             </table>
         </div>

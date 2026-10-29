@@ -73,7 +73,7 @@ include 'header.php';
     <!-- Form Container -->
     <div class="card card-body" style="padding: 2.5rem; background: white; border: 1px solid #e2e8f0; border-radius: 8px; border-top: 5px solid #1b5e20; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
         <h2 style="color: #0f172a; margin-bottom: 0.5rem;">
-            <?= $edit_mode ? '✏️ Edit Produce Listing' : '🌱 Post New Agricultural Produce' ?>
+            <?= $edit_mode ? '✏️ Edit Produce Listing' : 'Post New Agricultural Produce' ?>
         </h2>
         <p style="color: #64748b; font-size: 0.95rem; margin-bottom: 2rem;">
             Fill in the details below accurately to list your harvest for urban buyers across Kenya.
