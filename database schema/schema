@@ -1,0 +1,88 @@
+
+CREATE DATABASE IF NOT EXISTS danfam_market;
+USE danfam_market;
+
+
+SET FOREIGN_KEY_CHECKS = 0;
+
+DROP TABLE IF EXISTS order_items;
+DROP TABLE IF EXISTS orders;
+DROP TABLE IF EXISTS cart_items;
+DROP TABLE IF EXISTS produce;
+DROP TABLE IF EXISTS categories;
+DROP TABLE IF EXISTS users;
+
+SET FOREIGN_KEY_CHECKS = 1;
+
+
+CREATE TABLE users (
+    user_id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    full_name VARCHAR(100) NOT NULL,
+    phone VARCHAR(20),
+    role ENUM('Farmer', 'Buyer', 'Administrator') NOT NULL,
+    is_approved BOOLEAN DEFAULT FALSE, 
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+CREATE TABLE categories (
+    category_id INT AUTO_INCREMENT PRIMARY KEY,
+    category_name VARCHAR(100) NOT NULL UNIQUE,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+CREATE TABLE produce (
+    produce_id INT AUTO_INCREMENT PRIMARY KEY,
+    farmer_id INT NOT NULL,
+    category_id INT NOT NULL,
+    produce_name VARCHAR(100) NOT NULL,
+    description TEXT,
+    price_per_unit DECIMAL(10, 2) NOT NULL,
+    unit VARCHAR(30) NOT NULL, -- e.g., Kg, Litres, Crates, Sacks
+    quantity_available DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    photo_url VARCHAR(255),
+    location VARCHAR(150) NOT NULL,
+    status ENUM('Pending', 'Approved', 'Rejected') DEFAULT 'Pending', 
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (farmer_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (category_id) REFERENCES categories(category_id) ON DELETE RESTRICT
+);
+
+
+CREATE TABLE cart_items (
+    cart_id INT AUTO_INCREMENT PRIMARY KEY,
+    buyer_id INT NOT NULL,
+    produce_id INT NOT NULL,
+    quantity DECIMAL(10, 2) NOT NULL DEFAULT 1.00,
+    added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (buyer_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (produce_id) REFERENCES produce(produce_id) ON DELETE CASCADE
+);
+
+
+CREATE TABLE orders (
+    order_id INT AUTO_INCREMENT PRIMARY KEY,
+    buyer_id INT NOT NULL,
+    order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    total_amount DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    order_status ENUM('Placed', 'Confirmed', 'Dispatched', 'Delivered', 'Cancelled') DEFAULT 'Placed',
+    shipping_address TEXT NOT NULL,
+    FOREIGN KEY (buyer_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
+
+
+CREATE TABLE order_items (
+    order_item_id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id INT NOT NULL,
+    produce_id INT NOT NULL,
+    quantity DECIMAL(10, 2) NOT NULL,
+    unit_price DECIMAL(10, 2) NOT NULL,
+    subtotal DECIMAL(10, 2) NOT NULL,
+    FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE,
+    FOREIGN KEY (produce_id) REFERENCES produce(produce_id) ON DELETE RESTRICT
+);
