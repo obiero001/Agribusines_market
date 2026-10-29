@@ -8,21 +8,24 @@ error_reporting(E_ALL);
 
 require_once 'config.php';
 require_once 'functions.php';
+require_once 'upload.php'; // Included dedicated secure upload handler
 
 if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
 
-// Redirect and terminate execution.
- 
+/**
+ * Redirect and terminate execution.
+ */
 function redirectTo(string $url): never
 {
     header('Location: ' . $url);
     exit;
 }
 
-// Stop the request with an HTTP status code.
- 
+/**
+ * Stop the request with an HTTP status code.
+ */
 function stopRequest(string $message, int $status = 400): never
 {
     http_response_code($status);
@@ -57,8 +60,9 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     stopRequest('Method not allowed. Submit an appropriate form.', 405);
 }
 
-//  Validate a positive integer ID or quantity.
- 
+/**
+ * Validate a positive integer ID or quantity.
+ */
 function positiveInt(mixed $value): int
 {
     $result = filter_var($value, FILTER_VALIDATE_INT);
@@ -68,8 +72,9 @@ function positiveInt(mixed $value): int
     return (int) $result;
 }
 
-// Validate a monetary amount.
- 
+/**
+ * Validate a monetary amount.
+ */
 function validMoney(mixed $value): string
 {
     if (!is_scalar($value) || !is_numeric((string) $value)) {
@@ -115,35 +120,18 @@ try {
                 redirectTo('form.php?error=invalid_quantity');
             }
 
-            // Require image upload for new produce
-            if (!isset($_FILES['photo']) || $_FILES['photo']['error'] !== UPLOAD_ERR_OK) {
+            // Require and process image upload using upload.php helper
+            if (!isset($_FILES['photo']) || $_FILES['photo']['error'] === UPLOAD_ERR_NO_FILE) {
                 redirectTo('form.php?error=image_required');
             }
 
-            $fileTmpPath = $_FILES['photo']['tmp_name'];
-            $fileName = $_FILES['photo']['name'];
-            $fileSize = $_FILES['photo']['size'];
-
-            $fileExtension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
-            $allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'avif'];
-            $maxFileSize = 5 * 1024 * 1024; // 5 MB limit
-
-            if (!in_array($fileExtension, $allowedExtensions, true) || $fileSize > $maxFileSize) {
-                redirectTo('form.php?error=invalid_image_format_or_size');
+            try {
+                $photo = uploadProduceImage($_FILES['photo']);
+            } catch (Exception $e) {
+                error_log('[Produce Upload Error] ' . $e->getMessage());
+                redirectTo('form.php?error=' . urlencode($e->getMessage()));
             }
 
-            $newFileName = 'produce_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $fileExtension;
-            $uploadFileDir = __DIR__ . '/uploads/';
-
-            if (!is_dir($uploadFileDir)) {
-                mkdir($uploadFileDir, 0755, true);
-            }
-
-            if (!move_uploaded_file($fileTmpPath, $uploadFileDir . $newFileName)) {
-                redirectTo('form.php?error=image_upload_failed');
-            }
-
-            $photo = $newFileName; 
             $status = ($userRole === 'Administrator') ? 'Approved' : 'Pending';
 
             $stmt = $pdo->prepare(
@@ -179,26 +167,15 @@ try {
             $photoSql = "";
             $params = [$categoryId, $name, $description, $price, $quantity, $unit, $location];
 
-            if (isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
-                $fileTmpPath = $_FILES['photo']['tmp_name'];
-                $fileName = $_FILES['photo']['name'];
-                $fileSize = $_FILES['photo']['size'];
-                $fileExtension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
-                $allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'avif'];
-                $maxFileSize = 5 * 1024 * 1024;
-
-                if (in_array($fileExtension, $allowedExtensions, true) && $fileSize <= $maxFileSize) {
-                    $newFileName = 'produce_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $fileExtension;
-                    $uploadFileDir = __DIR__ . '/uploads/';
-
-                    if (!is_dir($uploadFileDir)) {
-                        mkdir($uploadFileDir, 0755, true);
-                    }
-
-                    if (move_uploaded_file($fileTmpPath, $uploadFileDir . $newFileName)) {
-                        $photoSql = ", photo_url = ?";
-                        $params[] = $newFileName;
-                    }
+            // Optional image update during editing
+            if (isset($_FILES['photo']) && $_FILES['photo']['error'] !== UPLOAD_ERR_NO_FILE) {
+                try {
+                    $newFileName = uploadProduceImage($_FILES['photo']);
+                    $photoSql = ", photo_url = ?";
+                    $params[] = $newFileName;
+                } catch (Exception $e) {
+                    error_log('[Produce Edit Upload Error] ' . $e->getMessage());
+                    redirectTo('form.php?id=' . $produceId . '&error=' . urlencode($e->getMessage()));
                 }
             }
 
