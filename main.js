@@ -67,7 +67,7 @@ function updateCartCountBadge() {
     }
 }
 
-// Clear all items from cart
+// Clear all items from cart sawa
 function clearCart() {
     if (confirm("Are you sure you want to clear all items from your cart?")) {
         localStorage.removeItem(CART_STORAGE_KEY);
