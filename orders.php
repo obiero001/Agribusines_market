@@ -123,7 +123,7 @@ require_once 'header.php';
                             <th style="padding: 0.75rem;">Order #</th>
                             <th style="padding: 0.75rem;">Date Placed</th>
                             <?php if ($user_role !== 'Buyer'): ?>
-                                <th style="padding: 0.75rem;">Customer / Buyer</th>
+                                <th style="padding: 0.75rem;">Customer </th>
                             <?php endif; ?>
                             <th style="padding: 0.75rem;">Shipping Address</th>
                             <th style="padding: 0.75rem;">Total Amount</th>
