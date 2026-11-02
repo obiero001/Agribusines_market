@@ -8,7 +8,7 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 require_once 'config.php';
 require_once 'functions.php';
 
-// Authorization Guard: Require user login
+// Authorization Guard Require user login
 if (function_exists('require_login')) {
     require_login();
 } else {
