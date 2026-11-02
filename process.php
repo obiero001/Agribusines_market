@@ -14,18 +14,16 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
 
-/**
- * Redirect and terminate execution.
- */
+// Redirect and terminate execution.
+ 
 function redirectTo(string $url): never
 {
     header('Location: ' . $url);
     exit;
 }
 
-/**
- * Stop the request with an HTTP status code.
- */
+//  Stop the request with an HTTP status code.
+ 
 function stopRequest(string $message, int $status = 400): never
 {
     http_response_code($status);
@@ -60,9 +58,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     stopRequest('Method not allowed. Submit an appropriate form.', 405);
 }
 
-/**
- * Validate a positive integer ID or quantity.
- */
+// Validate a positive integer ID or quantity.
+ 
 function positiveInt(mixed $value): int
 {
     $result = filter_var($value, FILTER_VALIDATE_INT);
@@ -72,9 +69,8 @@ function positiveInt(mixed $value): int
     return (int) $result;
 }
 
-/**
- * Validate a monetary amount.
- */
+// Validate a monetary amount.
+ 
 function validMoney(mixed $value): string
 {
     if (!is_scalar($value) || !is_numeric((string) $value)) {
