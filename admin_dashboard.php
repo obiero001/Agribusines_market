@@ -16,13 +16,13 @@ if (!isset($_SESSION['user_id']) || ($_SESSION['user_role'] ?? '') !== 'Administ
 include 'header.php';
 
 // Fetch System Summary Metrics
-$total_users    = $pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
-$total_farmers  = $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'Farmer'")->fetchColumn();
-$total_buyers   = $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'Buyer'")->fetchColumn();
-$total_orders   = $pdo->query("SELECT COUNT(*) FROM orders")->fetchColumn();
+$total_users      = $pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
+$total_farmers    = $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'Farmer'")->fetchColumn();
+$total_buyers     = $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'Buyer'")->fetchColumn();
+$total_orders     = $pdo->query("SELECT COUNT(*) FROM orders")->fetchColumn();
 $pending_listings = $pdo->query("SELECT COUNT(*) FROM produce WHERE status = 'Pending'")->fetchColumn();
 
-// Fetch All Produce Listings for Moderation (Mapped to danfam_market schema columns)
+// Fetch All Produce Listings for Moderation
 $produce_stmt = $pdo->query("
     SELECT p.produce_id AS id, p.produce_name AS name, p.price_per_unit AS price, 
            p.quantity_available AS quantity, p.unit, p.location, p.status, 
@@ -32,24 +32,29 @@ $produce_stmt = $pdo->query("
     JOIN users u ON p.farmer_id = u.user_id 
     ORDER BY p.produce_id DESC
 ");
-$all_produce = $produce_stmt->fetchAll();
+$all_produce = $produce_stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Fetch All System Orders & Items Overview (Mapped to danfam_market schema columns)
+// Fetch All System Orders (Aligned with danfam_market schema & MySQL CONCAT)
 $orders_stmt = $pdo->query("
-    SELECT o.order_id AS id, o.total_amount, o.order_status AS status, o.shipping_address, o.order_date AS created_at, 
-           u.full_name AS buyer_name, u.email AS buyer_email 
+    SELECT o.order_id AS id, 
+           o.total_amount, 
+           o.order_status AS status, 
+           o.shipping_address, 
+           o.order_date AS created_at, 
+           COALESCE(u.full_name, CONCAT('Buyer #', o.buyer_id)) AS buyer_name, 
+           COALESCE(u.email, '') AS buyer_email 
     FROM orders o 
-    JOIN users u ON o.buyer_id = u.user_id 
+    LEFT JOIN users u ON o.buyer_id = u.user_id 
     ORDER BY o.order_id DESC
 ");
-$all_orders = $orders_stmt->fetchAll();
+$all_orders = $orders_stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - DanFam Market</title>
+    <title>Admin Dashboard - DanFam Market Kenya</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -200,10 +205,10 @@ $all_orders = $orders_stmt->fetchAll();
             </div>
         </div>
 
-        <!-- Section 2: Order Lifecycle Management -->
+        <!-- Section 2: Order Lifecycle Management & Receipt Printing -->
         <div class="card card-body" style="background: white; padding: 1.5rem; border-radius: 8px; border: 1px solid #e2e8f0;">
-            <h3>Order Lifecycle Tracker</h3>
-            <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 1rem;">Update order states through: <code>Placed</code> &rarr; <code>Confirmed</code> &rarr; <code>Dispatched</code> &rarr; <code>Delivered</code>.</p>
+            <h3>Order Lifecycle Tracker & Payments</h3>
+            <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 1rem;">Update order states through: <code>Placed</code> &rarr; <code>Confirmed</code> &rarr; <code>Dispatched</code> &rarr; <code>Delivered</code>. Print receipts for paid/confirmed orders.</p>
 
             <div class="table-responsive">
                 <table style="width: 100%; border-collapse: collapse;">
@@ -211,11 +216,11 @@ $all_orders = $orders_stmt->fetchAll();
                         <tr style="border-bottom: 2px solid #e2e8f0; text-align: left;">
                             <th style="padding: 0.75rem;">Order ID</th>
                             <th style="padding: 0.75rem;">Buyer Details</th>
-                            <th style="padding: 0.75rem;">Delivery Address</th>
+                            <th style="padding: 0.75rem;">Shipping Address</th>
                             <th style="padding: 0.75rem;">Total Amount</th>
                             <th style="padding: 0.75rem;">Date</th>
-                            <th style="padding: 0.75rem;">Current Status</th>
-                            <th style="padding: 0.75rem; text-align: center;">Update Lifecycle & Receipt</th>
+                            <th style="padding: 0.75rem;">Status</th>
+                            <th style="padding: 0.75rem; text-align: center;">Actions & Receipt</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -224,7 +229,7 @@ $all_orders = $orders_stmt->fetchAll();
                         <?php else: ?>
                             <?php foreach ($all_orders as $ord): ?>
                                 <tr style="border-bottom: 1px solid #e2e8f0;">
-                                    <td style="padding: 0.75rem;"><strong>#<?= $ord['id'] ?></strong></td>
+                                    <td style="padding: 0.75rem;"><strong>#<?= (int)$ord['id'] ?></strong></td>
                                     <td style="padding: 0.75rem;">
                                         <?= htmlspecialchars($ord['buyer_name']) ?><br>
                                         <small style="color: #64748b;"><?= htmlspecialchars($ord['buyer_email']) ?></small>
@@ -232,26 +237,40 @@ $all_orders = $orders_stmt->fetchAll();
                                     <td style="padding: 0.75rem; max-width: 200px;"><?= htmlspecialchars($ord['shipping_address']) ?></td>
                                     <td style="padding: 0.75rem;"><strong style="color: #1b5e20;">KSh <?= number_format((float)$ord['total_amount'], 2) ?></strong></td>
                                     <td style="padding: 0.75rem;"><small><?= date('Y-m-d H:i', strtotime($ord['created_at'])) ?></small></td>
-                                    <td style="padding: 0.75rem;"><?= htmlspecialchars($ord['status']) ?></td>
+                                    <td style="padding: 0.75rem;">
+                                        <span style="padding: 0.25rem 0.65rem; border-radius: 50px; font-size: 0.8rem; font-weight: 700; 
+                                            background: <?= in_array($ord['status'], ['Delivered', 'Completed'], true) ? '#d1fae5; color: #065f46;' : ($ord['status'] === 'Cancelled' ? '#fee2e2; color: #991b1b;' : '#fef3c7; color: #92400e;') ?>">
+                                            <?= htmlspecialchars($ord['status']) ?>
+                                        </span>
+                                    </td>
                                     <td style="padding: 0.75rem; text-align: center;">
                                         <div style="display: flex; gap: 6px; align-items: center; justify-content: center; flex-wrap: wrap;">
+                                            
                                             <!-- Status Update Form -->
                                             <form action="process.php" method="POST" style="display: flex; gap: 4px; align-items: center; margin: 0;">
                                                 <input type="hidden" name="action" value="update_order_status">
-                                                <input type="hidden" name="order_id" value="<?= $ord['id'] ?>">
+                                                <input type="hidden" name="order_id" value="<?= (int)$ord['id'] ?>">
                                                 <select name="status" style="padding: 0.3rem; border-radius: 4px; border: 1px solid #cbd5e1; font-size: 0.82rem; background: #fff;">
                                                     <option value="Placed" <?= $ord['status'] === 'Placed' ? 'selected' : '' ?>>Placed</option>
                                                     <option value="Confirmed" <?= $ord['status'] === 'Confirmed' ? 'selected' : '' ?>>Confirmed</option>
                                                     <option value="Dispatched" <?= $ord['status'] === 'Dispatched' ? 'selected' : '' ?>>Dispatched</option>
                                                     <option value="Delivered" <?= $ord['status'] === 'Delivered' ? 'selected' : '' ?>>Delivered</option>
+                                                    <option value="Cancelled" <?= $ord['status'] === 'Cancelled' ? 'selected' : '' ?>>Cancelled</option>
                                                 </select>
                                                 <button type="submit" style="padding: 0.3rem 0.6rem; font-size: 0.78rem; background: #1b5e20; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">Save</button>
                                             </form>
 
-                                            <!-- Connected Receipt Link -->
-                                            <a href="admin_receipt.php?order_id=<?= (int)$ord['id'] ?>" class="btn btn-outline" style="font-size: 0.78rem; padding: 0.32rem 0.6rem; text-decoration: none; border: 1px solid #1b5e20; border-radius: 4px; color: #1b5e20; background: #f0fdf4; font-weight: 600;" target="_blank" title="View & Print Order Receipt">
-                                                🖨️ Receipt
-                                            </a>
+                                            <!-- Printable Receipt Link (Restricted to confirmed/paid statuses) -->
+                                            <?php if (in_array($ord['status'], ['Confirmed', 'Dispatched', 'Delivered', 'Completed'], true)): ?>
+                                                <a href="admin_receipt.php?order_id=<?= (int)$ord['id'] ?>" class="btn btn-outline" style="font-size: 0.78rem; padding: 0.32rem 0.6rem; text-decoration: none; border: 1px solid #1b5e20; border-radius: 4px; color: #1b5e20; background: #f0fdf4; font-weight: 600;" target="_blank" title="View & Print Payment Receipt">
+                                                    🖨️ Receipt
+                                                </a>
+                                            <?php else: ?>
+                                                <span style="font-size: 0.75rem; color: #94a3b8; font-style: italic; padding: 0.2rem;" title="Receipt available after order is confirmed/paid">
+                                                    ⏳ Pending
+                                                </span>
+                                            <?php endif; ?>
+
                                         </div>
                                     </td>
                                 </tr>
@@ -265,7 +284,7 @@ $all_orders = $orders_stmt->fetchAll();
     </div>
 
     <footer style="text-align: center; padding: 2rem; color: #64748b; font-size: 0.9rem;">
-        <p>&copy; 2026 DanFam Market. System Administrator Portal.</p>
+        <p>&copy; 2026 DanFam Market Kenya. System Administrator Portal.</p>
     </footer>
 </body>
 </html>
