@@ -33,12 +33,12 @@ if (!$product) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars($product['produce_name']) ?> | DanFam Market Kenya</title>
+    <title><?= htmlspecialchars($product['produce_name']) ?> DanFam Market Kenya</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <header>
-        <a href="catalogue.php" class="logo">DanFam Market Kenya</a>
+        <a href="catalogue.php" class="logo">DanFam Market </a>
         <nav>
             <a href="catalogue.php">Catalogue</a>
             <a href="cart.php">Cart (<span id="cart-count">0</span>)</a>

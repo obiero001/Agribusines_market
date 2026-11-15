@@ -144,7 +144,7 @@ include 'header.php';
                 </div>
 
                 <button type="submit" name="login_btn" class="btn btn-accent" style="width: 100%; padding: 0.85rem; font-size: 1rem; font-weight: 700; background: #ff9800; color: white; border: none; border-radius: 6px; cursor: pointer;">
-                    🚀 Sign In
+                    Sign In
                 </button>
             </form>
         </div>

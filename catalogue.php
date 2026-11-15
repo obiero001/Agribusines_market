@@ -1,5 +1,5 @@
 <?php
-$page_title = "Produce Catalogue & Marketplace";
+$page_title = "Produce Catalogue";
 require_once 'functions.php';
 
 // Fetch all approved categories for filtering
