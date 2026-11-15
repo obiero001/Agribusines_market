@@ -27,16 +27,17 @@ if (empty($_SESSION['csrf_token'])) {
 $user_id = (int) $_SESSION['user_id'];
 $user_role = $_SESSION['user_role'] ?? '';
 
-// Fetch orders mapped strictly to DanFam Market database schema
+// Fetch orders mapped strictly to DanFam Market database schema & order_date column
 try {
     if ($user_role === 'Administrator') {
         // Admins see all orders across the system
         $stmt = $pdo->query("
             SELECT o.order_id AS id, o.total_amount, o.order_status AS status, 
-                   o.shipping_address, o.created_at, 
-                   u.full_name AS buyer_name, u.email AS buyer_email 
+                   o.shipping_address, o.order_date AS created_at, 
+                   COALESCE(u.full_name, CONCAT('Buyer #', o.buyer_id)) AS buyer_name, 
+                   COALESCE(u.email, '') AS buyer_email 
             FROM orders o 
-            JOIN users u ON o.buyer_id = u.user_id 
+            LEFT JOIN users u ON o.buyer_id = u.user_id 
             ORDER BY o.order_id DESC
         ");
         $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -44,12 +45,13 @@ try {
         // Farmers see orders containing their produce items
         $stmt = $pdo->prepare("
             SELECT DISTINCT o.order_id AS id, o.total_amount, o.order_status AS status, 
-                   o.shipping_address, o.created_at, 
-                   u.full_name AS buyer_name, u.email AS buyer_email 
+                   o.shipping_address, o.order_date AS created_at, 
+                   COALESCE(u.full_name, CONCAT('Buyer #', o.buyer_id)) AS buyer_name, 
+                   COALESCE(u.email, '') AS buyer_email 
             FROM orders o 
             JOIN order_items oi ON o.order_id = oi.order_id 
             JOIN produce p ON oi.produce_id = p.produce_id 
-            JOIN users u ON o.buyer_id = u.user_id 
+            LEFT JOIN users u ON o.buyer_id = u.user_id 
             WHERE p.farmer_id = ? 
             ORDER BY o.order_id DESC
         ");
@@ -59,10 +61,11 @@ try {
         // Buyers see only their own placed orders
         $stmt = $pdo->prepare("
             SELECT o.order_id AS id, o.total_amount, o.order_status AS status, 
-                   o.shipping_address, o.created_at, 
-                   u.full_name AS buyer_name, u.email AS buyer_email 
+                   o.shipping_address, o.order_date AS created_at, 
+                   COALESCE(u.full_name, CONCAT('Buyer #', o.buyer_id)) AS buyer_name, 
+                   COALESCE(u.email, '') AS buyer_email 
             FROM orders o 
-            JOIN users u ON o.buyer_id = u.user_id 
+            LEFT JOIN users u ON o.buyer_id = u.user_id 
             WHERE o.buyer_id = ? 
             ORDER BY o.order_id DESC
         ");
@@ -123,7 +126,7 @@ require_once 'header.php';
                             <th style="padding: 0.75rem;">Order #</th>
                             <th style="padding: 0.75rem;">Date Placed</th>
                             <?php if ($user_role !== 'Buyer'): ?>
-                                <th style="padding: 0.75rem;">Customer </th>
+                                <th style="padding: 0.75rem;">Customer / Buyer</th>
                             <?php endif; ?>
                             <th style="padding: 0.75rem;">Shipping Address</th>
                             <th style="padding: 0.75rem;">Total Amount</th>
@@ -138,8 +141,8 @@ require_once 'header.php';
                                 <td style="padding: 0.85rem 0.75rem; font-size: 0.9rem; color: #475569;"><?= date('d M Y, h:i A', strtotime($order['created_at'])) ?></td>
                                 <?php if ($user_role !== 'Buyer'): ?>
                                     <td style="padding: 0.85rem 0.75rem;">
-                                        <strong><?= htmlspecialchars($order['buyer_name'] ?? 'Buyer') ?></strong><br>
-                                        <small style="color: #64748b;"><?= htmlspecialchars($order['buyer_email'] ?? '') ?></small>
+                                        <strong><?= htmlspecialchars($order['buyer_name']) ?></strong><br>
+                                        <small style="color: #64748b;"><?= htmlspecialchars($order['buyer_email']) ?></small>
                                     </td>
                                 <?php endif; ?>
                                 <td style="padding: 0.85rem 0.75rem; font-size: 0.9rem; max-width: 200px;"><?= htmlspecialchars($order['shipping_address']) ?></td>
@@ -155,14 +158,14 @@ require_once 'header.php';
                                 <td style="padding: 0.85rem 0.75rem; text-align: center;">
                                     <div style="display: flex; gap: 6px; justify-content: center; align-items: center; flex-wrap: wrap;">
                                         
-                                        <!-- PRINTABLE RECEIPT LINK (Restricted to successful/paid statuses) -->
+                                        <!-- PRINTABLE RECEIPT LINK (Restricted to confirmed/paid statuses) -->
                                         <?php if (in_array($order['status'], ['Confirmed', 'Dispatched', 'Delivered', 'Completed'], true)): ?>
                                             <a href="admin_receipt.php?order_id=<?= (int)$order['id'] ?>" class="btn btn-outline" style="padding: 0.35rem 0.65rem; font-size: 0.82rem; border: 1px solid #1b5e20; border-radius: 4px; text-decoration: none; color: #1b5e20; background: #f0fdf4; font-weight: 600;" target="_blank" title="View & Print Payment Receipt">
-                                                🖨️ Print Receipt
+                                                🖨️ Receipt
                                             </a>
                                         <?php else: ?>
                                             <span style="font-size: 0.78rem; color: #94a3b8; font-style: italic; padding: 0.35rem 0.5rem;" title="Receipt available after order payment is confirmed">
-                                                ⏳ Pending Payment
+                                                ⏳ Pending
                                             </span>
                                         <?php endif; ?>
 
@@ -177,6 +180,7 @@ require_once 'header.php';
                                                     <option value="Confirmed" <?= $order['status'] === 'Confirmed' ? 'selected' : '' ?>>Confirmed</option>
                                                     <option value="Dispatched" <?= $order['status'] === 'Dispatched' ? 'selected' : '' ?>>Dispatched</option>
                                                     <option value="Delivered" <?= $order['status'] === 'Delivered' ? 'selected' : '' ?>>Delivered</option>
+                                                    <option value="Cancelled" <?= $order['status'] === 'Cancelled' ? 'selected' : '' ?>>Cancelled</option>
                                                 </select>
                                             </form>
                                         <?php endif; ?>
