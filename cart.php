@@ -1,61 +1,82 @@
 <?php
+declare(strict_types=1);
+
 $page_title = "Shopping Cart & Checkout";
+require_once 'config.php';
 require_once 'functions.php';
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // Handle Backend Order Processing BEFORE sending any HTML headers
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cart_json'])) {
     if (!is_logged_in()) {
-        redirect('login.php');
+        header('Location: login.php?error=unauthorized');
+        exit;
     }
 
     $cart_data = json_decode($_POST['cart_json'], true);
-    $address = sanitize_input($_POST['address'] ?? '');
-    $buyer_id = $_SESSION['user_id'];
-    $total_amount = 0;
+    $address   = trim($_POST['address'] ?? '');
+    $buyer_id  = (int)($_SESSION['user_id'] ?? 0);
+    $total_amount = 0.0;
+
+    if (empty($address)) {
+        $_SESSION['error'] = "Shipping address is required.";
+        header('Location: cart.php');
+        exit;
+    }
 
     if (!empty($cart_data) && is_array($cart_data)) {
         foreach ($cart_data as $item) {
-            $total_amount += floatval($item['price']) * floatval($item['quantity']);
+            $total_amount += floatval($item['price'] ?? 0) * floatval($item['quantity'] ?? 1);
         }
 
         try {
             $pdo->beginTransaction();
 
             // 1. Insert Master Order Record
-            $stmt = $pdo->prepare("INSERT INTO orders (buyer_id, total_amount, shipping_address, order_status) VALUES (?, ?, ?, 'Placed')");
+            $stmt = $pdo->prepare("
+                INSERT INTO orders (buyer_id, total_amount, shipping_address, order_status) 
+                VALUES (?, ?, ?, 'Placed')
+            ");
             $stmt->execute([$buyer_id, $total_amount, $address]);
 
-            // FIX 1: Retrieve lastInsertId BEFORE commit() so it returns the true order_id
+            // Retrieve lastInsertId BEFORE commit() so it returns the true order_id
             $order_id = $pdo->lastInsertId();
 
-            // FIX 2: Aligned columns with database schema (price_at_purchase)
-            $stmt_item = $pdo->prepare("INSERT INTO order_items (order_id, produce_id, quantity, price_at_purchase) VALUES (?, ?, ?, ?)");
-            $stmt_stock = $pdo->prepare("UPDATE produce SET quantity_available = quantity_available - ? WHERE produce_id = ?");
+            // 2. Insert Order Items & Deduct Stock
+            $stmt_item = $pdo->prepare("
+                INSERT INTO order_items (order_id, produce_id, quantity, price_at_purchase) 
+                VALUES (?, ?, ?, ?)
+            ");
+            $stmt_stock = $pdo->prepare("
+                UPDATE produce 
+                SET quantity_available = quantity_available - ? 
+                WHERE produce_id = ?
+            ");
 
             foreach ($cart_data as $item) {
-                $produce_id = intval($item['id']);
-                $qty = floatval($item['quantity']);
-                $price = floatval($item['price']);
+                $produce_id = intval($item['id'] ?? $item['produce_id'] ?? 0);
+                $qty        = floatval($item['quantity'] ?? 1);
+                $price      = floatval($item['price'] ?? 0);
 
-                $stmt_item->execute([
-                    $order_id,
-                    $produce_id,
-                    $qty,
-                    $price
-                ]);
+                if ($produce_id <= 0 || $qty <= 0) {
+                    throw new Exception("Invalid cart item data detected.");
+                }
 
-                // Deduct stock availability
+                $stmt_item->execute([$order_id, $produce_id, $qty, $price]);
                 $stmt_stock->execute([$qty, $produce_id]);
             }
 
-            // Commit transaction after inserting all order items and getting the ID
+            // Commit transaction
             $pdo->commit();
             
-            // Clear browser local storage cart and redirect to receipt with valid ID
+            // Clear browser local storage cart and redirect to receipt
             include 'header.php';
             echo "<script>
                     localStorage.removeItem('agri_cart');
-                    window.location.href = 'receipt.php?order_id=" . $order_id . "';
+                    window.location.href = 'receipt.php?order_id=" . (int)$order_id . "';
                   </script>";
             include 'footer.php';
             exit;
@@ -64,8 +85,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cart_json'])) {
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
             }
-            error_log('[Checkout Error] ' . $e->getMessage());
+            error_log('[DanFam Market Checkout Error] ' . $e->getMessage());
+            $error_message = urlencode($e->getMessage());
+            header("Location: cart.php?error={$error_message}");
+            exit;
         }
+    } else {
+        header('Location: cart.php?error=empty_cart');
+        exit;
     }
 }
 
@@ -74,15 +101,21 @@ include 'header.php';
 
 <div class="container" style="max-width: 950px; margin-top: 2rem; margin-bottom: 3rem;">
     <!-- Page Header -->
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 2px solid var(--gray-border, #e2e8f0); padding-bottom: 1rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 1rem;">
         <div>
-            <h2 style="color: var(--dark, #0f172a); margin-bottom: 0.2rem;">🛒 Shopping Cart</h2>
-            <p style="color: var(--text-muted, #64748b); font-size: 0.95rem;">Review your selected agricultural produce before placing your order.</p>
+            <h2 style="color: #0f172a; margin-bottom: 0.2rem;">🛒 Shopping Cart</h2>
+            <p style="color: #64748b; font-size: 0.95rem;">Review your selected agricultural produce before placing your order.</p>
         </div>
         <a href="catalogue.php" class="btn btn-outline" style="font-size: 0.88rem; padding: 0.5rem 1rem; text-decoration: none; border: 1px solid #cbd5e1; border-radius: 6px; color: #0f172a;">
             &larr; Continue Shopping
         </a>
     </div>
+
+    <?php if (isset($_GET['error'])): ?>
+        <div style="background: #fee2e2; color: #991b1b; padding: 0.85rem 1.25rem; border-radius: 6px; margin-bottom: 1.5rem; font-weight: 600; border: 1px solid #fca5a5;">
+            ⚠️ Checkout Error: <?= htmlspecialchars(urldecode($_GET['error'])) ?>
+        </div>
+    <?php endif; ?>
 
     <!-- Cart Table -->
     <div class="card card-body" style="padding: 1.5rem; margin-bottom: 2rem; background: white; border: 1px solid #e2e8f0; border-radius: 8px;">
@@ -104,23 +137,23 @@ include 'header.php';
         </div>
 
         <!-- Total Summary Row -->
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 2px dashed var(--gray-border, #e2e8f0);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 2px dashed #e2e8f0;">
             <div>
                 <button onclick="clearCart()" class="btn btn-outline" style="color: #d32f2f; border: 1px solid #f8d7da; background: #fff5f5; font-size: 0.85rem; padding: 0.4rem 0.8rem; border-radius: 6px; cursor: pointer;">
                     🗑️ Clear Cart
                 </button>
             </div>
             <div style="text-align: right;">
-                <span style="font-size: 1rem; color: var(--text-muted, #64748b);">Total Payable Amount:</span>
-                <h2 id="cart-total" style="color: var(--primary, #1b5e20); font-size: 2rem; margin-top: 0.2rem;">KSh 0.00</h2>
+                <span style="font-size: 1rem; color: #64748b;">Total Payable Amount:</span>
+                <h2 id="cart-total" style="color: #1b5e20; font-size: 2rem; margin-top: 0.2rem;">KSh 0.00</h2>
             </div>
         </div>
     </div>
 
     <!-- Checkout Details Section -->
-    <div class="card card-body" style="padding: 2rem; border-top: 4px solid var(--accent, #1b5e20); background: white; border-radius: 8px; border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0;">
-        <h3 style="margin-bottom: 0.5rem; color: var(--dark, #0f172a);">🚚 Delivery & Order Confirmation</h3>
-        <p style="color: var(--text-muted, #64748b); font-size: 0.9rem; margin-bottom: 1.5rem;">Please provide your delivery destination address across Kenya to complete the order.</p>
+    <div class="card card-body" style="padding: 2rem; border-top: 4px solid #1b5e20; background: white; border-radius: 8px; border: 1px solid #e2e8f0;">
+        <h3 style="margin-bottom: 0.5rem; color: #0f172a;">🚚 Delivery & Order Confirmation</h3>
+        <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 1.5rem;">Please provide your delivery destination address across Kenya to complete the order.</p>
 
         <?php if (!is_logged_in()): ?>
             <div style="background: #fff3cd; color: #856404; padding: 1rem 1.25rem; border-radius: 6px; border-left: 4px solid #ffeeba; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
@@ -137,7 +170,7 @@ include 'header.php';
                 <input type="hidden" name="cart_json" id="cart_json">
                 
                 <div class="form-group" style="margin-bottom: 1.25rem;">
-                    <label for="address" style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: var(--dark, #0f172a);">
+                    <label for="address" style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: #0f172a;">
                         Delivery Address / Location (County, Town, Building)
                     </label>
                     <textarea name="address" id="address" required rows="3" class="form-control" placeholder="e.g. Thika Town, Commercial Street, Block B, Kiambu County" style="width: 100%; padding: 0.75rem; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.95rem;"></textarea>
@@ -180,19 +213,19 @@ include 'header.php';
         let grandTotal = 0;
 
         cart.forEach((item, index) => {
-            let subtotal = parseFloat(item.price) * parseFloat(item.quantity);
+            let subtotal = parseFloat(item.price || 0) * parseFloat(item.quantity || 1);
             grandTotal += subtotal;
 
             html += `
                 <tr style="border-bottom: 1px solid #f1f5f9;">
-                    <td style="padding: 0.85rem; font-weight: 600; color: #0f172a;">${escapeHtml(item.name)}</td>
-                    <td style="padding: 0.85rem; color: #334155;">KSh ${parseFloat(item.price).toFixed(2)}</td>
+                    <td style="padding: 0.85rem; font-weight: 600; color: #0f172a;">${escapeHtml(item.name || 'Produce Item')}</td>
+                    <td style="padding: 0.85rem; color: #334155;">KSh ${parseFloat(item.price || 0).toFixed(2)}</td>
                     <td style="padding: 0.85rem;">
-                        <input type="number" value="${item.quantity}" min="1" style="width: 70px; padding: 0.35rem; border: 1px solid #cbd5e1; border-radius: 4px; text-align: center;" onchange="updateQuantity(${index}, this.value)">
+                        <input type="number" value="${item.quantity || 1}" min="1" style="width: 70px; padding: 0.35rem; border: 1px solid #cbd5e1; border-radius: 4px; text-align: center;" onchange="updateQuantity(${index}, this.value)">
                     </td>
                     <td style="padding: 0.85rem; font-weight: 700; color: #1b5e20;">KSh ${subtotal.toFixed(2)}</td>
                     <td style="padding: 0.85rem; text-align: center;">
-                        <button onclick="removeItem(${index})" style="background: #ef4444; color: white; border: none; padding: 0.35rem 0.7rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">Remove</button>
+                        <button type="button" onclick="removeItem(${index})" style="background: #ef4444; color: white; border: none; padding: 0.35rem 0.7rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">Remove</button>
                     </td>
                 </tr>
             `;
@@ -252,7 +285,7 @@ include 'header.php';
     }
 
     function escapeHtml(str) {
-        return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
     }
 </script>
 
