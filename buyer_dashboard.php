@@ -57,7 +57,7 @@ require_once 'header.php';
         <div>
             <span style="background: rgba(255,255,255,0.2); padding: 0.3rem 0.8rem; border-radius: 50px; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Buyer Portal</span>
             <h1 style="margin: 0.5rem 0 0.3rem 0; font-size: 2rem; font-weight: 800;">Jambo, <?= htmlspecialchars($buyer_name) ?>! 👋</h1>
-            <p style="margin: 0; opacity: 0.9; font-size: 0.95rem;">Manage your fresh produce orders, track shipments across Kenya, and view payment receipts.</p>
+            <p style="margin: 0; opacity: 0.9; font-size: 0.95rem;">Track your fresh produce orders, check shipment progress across Kenya, and manage your cart.</p>
         </div>
         <div>
             <a href="catalogue.php" class="btn" style="background: #ffffff; color: #1b5e20; font-weight: 700; padding: 0.75rem 1.5rem; border-radius: 8px; text-decoration: none; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: inline-block;">
@@ -84,12 +84,12 @@ require_once 'header.php';
         </div>
     </div>
 
-    <!-- Order History Section -->
+    <!-- Order History & Tracking Section -->
     <div class="card card-body" style="background: white; padding: 2rem; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
             <div>
-                <h3 style="margin: 0; color: #0f172a; font-size: 1.25rem;">📦 My Recent Produce Orders</h3>
-                <p style="margin: 0.2rem 0 0 0; color: #64748b; font-size: 0.9rem;">Track order progress from farm confirmation to delivery.</p>
+                <h3 style="margin: 0; color: #0f172a; font-size: 1.25rem;">📦 My Produce Orders & Status Tracker</h3>
+                <p style="margin: 0.2rem 0 0 0; color: #64748b; font-size: 0.9rem;">Review your order history, delivery addresses, and fulfillment status.</p>
             </div>
             <a href="cart.php" style="color: #1b5e20; font-weight: 600; text-decoration: none; font-size: 0.95rem;">View Active Cart &rarr;</a>
         </div>
@@ -137,16 +137,10 @@ require_once 'header.php';
                                 <td style="padding: 0.85rem 0.75rem; text-align: center;">
                                     <div style="display: flex; gap: 6px; justify-content: center; align-items: center;">
                                         
-                                        <!-- Printable Receipt (Available for Confirmed, Dispatched, Delivered) -->
-                                        <?php if (in_array($ord['status'], ['Confirmed', 'Dispatched', 'Delivered', 'Completed'], true)): ?>
-                                            <a href="admin_receipt.php?order_id=<?= (int)$ord['id'] ?>" class="btn" style="padding: 0.35rem 0.75rem; font-size: 0.78rem; background: #f0fdf4; color: #1b5e20; border: 1px solid #1b5e20; border-radius: 4px; font-weight: 600; text-decoration: none;" target="_blank" title="View & Print Receipt">
-                                                🖨️ Receipt
-                                            </a>
-                                        <?php else: ?>
-                                            <span style="font-size: 0.75rem; color: #94a3b8; font-style: italic;" title="Receipt available after order confirmation">
-                                                ⏳ Processing
-                                            </span>
-                                        <?php endif; ?>
+                                        <!-- Order Status / Details Indicator (Receipt printing restricted to Admin/Farmer) -->
+                                        <span style="font-size: 0.78rem; color: #64748b; background: #f1f5f9; padding: 0.35rem 0.65rem; border-radius: 4px; font-weight: 500;">
+                                            <?= htmlspecialchars($ord['status']) === 'Placed' ? '⏳ Order Placed' : '✅ Verified' ?>
+                                        </span>
 
                                         <!-- Cancel Order (Only if status is Placed) -->
                                         <?php if ($ord['status'] === 'Placed'): ?>
