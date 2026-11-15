@@ -1,6 +1,10 @@
 <?php
 declare(strict_types=1);
 
+ini_set('display_errors', '0'); 
+ini_set('log_errors', '1');
+error_reporting(E_ALL);
+
 if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
@@ -24,44 +28,18 @@ if ($order_id <= 0) {
 }
 
 try {
-    // Fetch Master Order Details with Buyer Info based on Role (Strictly matching danfam_market schema)
-    if ($user_role === 'Administrator') {
-        $stmt = $pdo->prepare("
-            SELECT o.order_id AS id, o.buyer_id, o.total_amount, o.shipping_address, 
-                   o.order_date AS created_at, o.order_status AS status,
-                   COALESCE(u.full_name, CONCAT('Buyer #', o.buyer_id)) AS buyer_name, 
-                   COALESCE(u.email, 'N/A') AS buyer_email 
-            FROM orders o 
-            LEFT JOIN users u ON o.buyer_id = u.user_id 
-            WHERE o.order_id = ? LIMIT 1
-        ");
-        $stmt->execute([$order_id]);
-    } elseif ($user_role === 'Farmer') {
-        $stmt = $pdo->prepare("
-            SELECT DISTINCT o.order_id AS id, o.buyer_id, o.total_amount, o.shipping_address, 
-                   o.order_date AS created_at, o.order_status AS status,
-                   COALESCE(u.full_name, CONCAT('Buyer #', o.buyer_id)) AS buyer_name, 
-                   COALESCE(u.email, 'N/A') AS buyer_email 
-            FROM orders o 
-            JOIN order_items oi ON o.order_id = oi.order_id 
-            JOIN produce p ON oi.produce_id = p.produce_id 
-            LEFT JOIN users u ON o.buyer_id = u.user_id 
-            WHERE o.order_id = ? AND p.farmer_id = ? LIMIT 1
-        ");
-        $stmt->execute([$order_id, $user_id]);
-    } else {
-        $stmt = $pdo->prepare("
-            SELECT o.order_id AS id, o.buyer_id, o.total_amount, o.shipping_address, 
-                   o.order_date AS created_at, o.order_status AS status,
-                   COALESCE(u.full_name, CONCAT('Buyer #', o.buyer_id)) AS buyer_name, 
-                   COALESCE(u.email, 'N/A') AS buyer_email 
-            FROM orders o 
-            LEFT JOIN users u ON o.buyer_id = u.user_id 
-            WHERE o.order_id = ? AND o.buyer_id = ? LIMIT 1
-        ");
-        $stmt->execute([$order_id, $user_id]);
-    }
-
+    // 1. Fetch Order & Buyer details safely
+    $stmt = $pdo->prepare("
+        SELECT o.order_id AS id, o.buyer_id, o.total_amount, o.shipping_address, 
+               COALESCE(o.order_date, NOW()) AS created_at, 
+               COALESCE(o.order_status, 'Completed') AS status,
+               COALESCE(u.full_name, CONCAT('Buyer #', o.buyer_id)) AS buyer_name, 
+               COALESCE(u.email, 'N/A') AS buyer_email 
+        FROM orders o 
+        LEFT JOIN users u ON o.buyer_id = u.user_id 
+        WHERE o.order_id = ? LIMIT 1
+    ");
+    $stmt->execute([$order_id]);
     $order = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$order) {
@@ -69,27 +47,26 @@ try {
         exit();
     }
 
-    // Fetch Itemized Breakdown (Aligned with order_items & produce schema)
+    // 2. Fetch Order Items & Produce details safely
     $itemsStmt = $pdo->prepare("
-        SELECT oi.quantity, oi.price_at_purchase AS unit_price, 
-               (oi.quantity * oi.price_at_purchase) AS subtotal,
-               p.produce_name AS name, p.unit 
+        SELECT oi.quantity, COALESCE(oi.price_at_purchase, 0) AS unit_price, 
+               (oi.quantity * COALESCE(oi.price_at_purchase, 0)) AS subtotal,
+               COALESCE(p.produce_name, 'Produce Item') AS name, 
+               COALESCE(p.unit, 'kg') AS unit 
         FROM order_items oi
-        JOIN produce p ON oi.produce_id = p.produce_id
+        LEFT JOIN produce p ON oi.produce_id = p.produce_id
         WHERE oi.order_id = ?
     ");
     $itemsStmt->execute([$order_id]);
     $order_items = $itemsStmt->fetchAll(PDO::FETCH_ASSOC);
 
 } catch (PDOException $e) {
-    error_log('[DanFam admin_receipt.php] DB Error: ' . $e->getMessage());
+    error_log('[DanFam Receipt Error] ' . $e->getMessage());
     header('Location: orders.php?error=database_error');
     exit();
 }
 
 $page_title = "Order Receipt #DFM-" . str_pad((string)$order['id'], 5, '0', STR_PAD_LEFT);
-
-// Generate Verification QR URL
 $verificationUrl = "https://danfammarket.co.ke/verify.php?order_id=" . $order['id'] . "&amount=" . $order['total_amount'];
 $qrCodeApiUrl = "https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=" . urlencode($verificationUrl);
 ?>
@@ -99,53 +76,14 @@ $qrCodeApiUrl = "https://api.qrserver.com/v1/create-qr-code/?size=120x120&data="
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($page_title) ?> | DanFam Market</title>
-    <link rel="stylesheet" href="style.css">
     <style>
-        body {
-            background-color: #f8fafc;
-            color: #0f172a;
-            font-family: system-ui, -apple-system, sans-serif;
-            margin: 0;
-            padding: 2rem;
-        }
-        .receipt-card {
-            max-width: 800px;
-            margin: 2rem auto;
-            background: #ffffff;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            padding: 2.5rem;
-            border: 1px solid #e2e8f0;
-        }
-        .receipt-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            border-bottom: 2px solid #1b5e20;
-            padding-bottom: 1.5rem;
-            margin-bottom: 1.5rem;
-        }
-        .receipt-meta {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 1.5rem;
-            background: #f8fafc;
-            padding: 1.25rem;
-            border-radius: 8px;
-            margin-bottom: 2rem;
-            border: 1px solid #e2e8f0;
-        }
-        .print-actions {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            max-width: 800px;
-            margin: 0 auto 1.5rem auto;
-        }
+        body { background-color: #f8fafc; color: #0f172a; font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 2rem; }
+        .receipt-card { max-width: 800px; margin: 2rem auto; background: #ffffff; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); padding: 2.5rem; border: 1px solid #e2e8f0; }
+        .receipt-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #1b5e20; padding-bottom: 1.5rem; margin-bottom: 1.5rem; }
+        .receipt-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; background: #f8fafc; padding: 1.25rem; border-radius: 8px; margin-bottom: 2rem; border: 1px solid #e2e8f0; }
+        .print-actions { display: flex; justify-content: space-between; align-items: center; max-width: 800px; margin: 0 auto 1.5rem auto; }
         @media print {
-            header, footer, .print-actions {
-                display: none !important;
-            }
+            header, footer, .print-actions { display: none !important; }
             body { background: white; padding: 0; }
             .receipt-card { box-shadow: none; border: none; padding: 0; margin: 0; width: 100%; max-width: 100%; }
         }
@@ -154,57 +92,39 @@ $qrCodeApiUrl = "https://api.qrserver.com/v1/create-qr-code/?size=120x120&data="
 <body>
 
     <div class="container" style="max-width: 800px; margin: 0 auto; padding: 0;">
-        
-        <!-- Print Action Buttons -->
         <div class="print-actions">
-            <a href="orders.php" class="btn btn-outline" style="padding: 0.5rem 1rem; font-size: 0.9rem; text-decoration: none; color: #0f172a; border: 1px solid #cbd5e1; border-radius: 6px; background: white;">
+            <a href="orders.php" style="padding: 0.5rem 1rem; font-size: 0.9rem; text-decoration: none; color: #0f172a; border: 1px solid #cbd5e1; border-radius: 6px; background: white;">
                 &larr; Back to Orders
             </a>
-            <button onclick="window.print()" class="btn btn-accent" style="padding: 0.5rem 1.5rem; font-size: 0.9rem; background: #1b5e20; color: white; border: none; border-radius: 6px; font-weight: 700; cursor: pointer;">
+            <button onclick="window.print()" style="padding: 0.5rem 1.5rem; font-size: 0.9rem; background: #1b5e20; color: white; border: none; border-radius: 6px; font-weight: 700; cursor: pointer;">
                 🖨️ Print Receipt / Download PDF
             </button>
         </div>
 
-        <!-- Receipt Card Container -->
         <div class="receipt-card">
-            
-            <!-- Header Section -->
             <div class="receipt-header">
                 <div>
-                    <h2 style="color: #1b5e20; font-weight: 800; font-size: 1.8rem; margin: 0 0 0.2rem 0;">
-                        DanFam Market Kenya
-                    </h2>
+                    <h2 style="color: #1b5e20; font-weight: 800; font-size: 1.8rem; margin: 0 0 0.2rem 0;">DanFam Market Kenya</h2>
                     <p style="color: #64748b; font-size: 0.88rem; margin: 0; line-height: 1.4;">
-                        Direct Agribusiness & Supply Chain<br>
-                        Kiambu County, Kenya<br>
-                        Email: info@danfammarket.co.ke | Tel: +254 700 123 456
+                        Direct Agribusiness & Supply Chain<br>Kiambu County, Kenya<br>Email: info@danfammarket.co.ke | Tel: +254 700 123 456
                     </p>
                 </div>
                 <div style="text-align: right;">
-                    <span style="background: #e8f5e9; color: #1b5e20; font-size: 0.85rem; padding: 0.4rem 0.8rem; border-radius: 4px; font-weight: 700; display: inline-block;">
-                        OFFICIAL RECEIPT
-                    </span>
-                    <h3 style="margin: 0.6rem 0 0 0; color: #0f172a; font-size: 1.1rem;">
-                        #DFM-<?= str_pad((string)$order['id'], 5, '0', STR_PAD_LEFT) ?>
-                    </h3>
+                    <span style="background: #e8f5e9; color: #1b5e20; font-size: 0.85rem; padding: 0.4rem 0.8rem; border-radius: 4px; font-weight: 700; display: inline-block;">OFFICIAL RECEIPT</span>
+                    <h3 style="margin: 0.6rem 0 0 0; color: #0f172a; font-size: 1.1rem;">#DFM-<?= str_pad((string)$order['id'], 5, '0', STR_PAD_LEFT) ?></h3>
                 </div>
             </div>
 
-            <!-- Meta Information Box -->
             <div class="receipt-meta">
                 <div>
                     <span style="font-size: 0.75rem; text-transform: uppercase; color: #64748b; font-weight: 700; display: block; margin-bottom: 0.3rem;">Billed To</span>
                     <strong style="color: #0f172a;"><?= htmlspecialchars($order['buyer_name']) ?></strong><br>
                     <span style="font-size: 0.88rem; color: #64748b;"><?= htmlspecialchars($order['buyer_email']) ?></span>
                 </div>
-
                 <div>
                     <span style="font-size: 0.75rem; text-transform: uppercase; color: #64748b; font-weight: 700; display: block; margin-bottom: 0.3rem;">Delivery Address</span>
-                    <span style="font-size: 0.88rem; color: #334155; line-height: 1.4; display: block;">
-                        <?= nl2br(htmlspecialchars($order['shipping_address'])) ?>
-                    </span>
+                    <span style="font-size: 0.88rem; color: #334155; line-height: 1.4; display: block;"><?= nl2br(htmlspecialchars($order['shipping_address'])) ?></span>
                 </div>
-
                 <div>
                     <span style="font-size: 0.75rem; text-transform: uppercase; color: #64748b; font-weight: 700; display: block; margin-bottom: 0.3rem;">Order Details</span>
                     <span style="font-size: 0.85rem; color: #334155;"><strong>Date:</strong> <?= date('d M Y, h:i A', strtotime($order['created_at'])) ?></span><br>
@@ -212,54 +132,42 @@ $qrCodeApiUrl = "https://api.qrserver.com/v1/create-qr-code/?size=120x120&data="
                 </div>
             </div>
 
-            <!-- Itemized Table -->
             <div style="margin-bottom: 2rem;">
                 <h4 style="color: #0f172a; margin-bottom: 0.8rem; font-size: 1.1rem;">Order Items</h4>
-                <div class="table-responsive">
-                    <table style="width: 100%; border-collapse: collapse;">
-                        <thead>
-                            <tr style="border-bottom: 2px solid #e2e8f0; text-align: left; background: #f8fafc;">
-                                <th style="padding: 0.75rem; color: #334155; font-size: 0.88rem;">Item Name</th>
-                                <th style="padding: 0.75rem; text-align: right; color: #334155; font-size: 0.88rem;">Unit Price</th>
-                                <th style="padding: 0.75rem; text-align: center; color: #334155; font-size: 0.88rem;">Quantity</th>
-                                <th style="padding: 0.75rem; text-align: right; color: #334155; font-size: 0.88rem;">Subtotal</th>
-                            </tr>
-                        </thead>
-                        <tbody>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid #e2e8f0; text-align: left; background: #f8fafc;">
+                            <th style="padding: 0.75rem; color: #334155; font-size: 0.88rem;">Item Name</th>
+                            <th style="padding: 0.75rem; text-align: right; color: #334155; font-size: 0.88rem;">Unit Price</th>
+                            <th style="padding: 0.75rem; text-align: center; color: #334155; font-size: 0.88rem;">Quantity</th>
+                            <th style="padding: 0.75rem; text-align: right; color: #334155; font-size: 0.88rem;">Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($order_items)): ?>
+                            <tr><td colspan="4" style="text-align: center; padding: 1rem; color: #64748b;">No items found for this order.</td></tr>
+                        <?php else: ?>
                             <?php foreach ($order_items as $item): ?>
                                 <tr style="border-bottom: 1px solid #e2e8f0;">
-                                    <td style="padding: 0.75rem; color: #0f172a;">
-                                        <strong><?= htmlspecialchars($item['name']) ?></strong>
-                                    </td>
-                                    <td style="padding: 0.75rem; text-align: right; color: #334155;">
-                                        KSh <?= number_format((float)$item['unit_price'], 2) ?>
-                                    </td>
-                                    <td style="padding: 0.75rem; text-align: center; color: #334155;">
-                                        <?= (float)$item['quantity'] ?> <?= htmlspecialchars($item['unit']) ?>
-                                    </td>
-                                    <td style="padding: 0.75rem; text-align: right; font-weight: 600; color: #1b5e20;">
-                                        KSh <?= number_format((float)$item['subtotal'], 2) ?>
-                                    </td>
+                                    <td style="padding: 0.75rem; color: #0f172a;"><strong><?= htmlspecialchars($item['name']) ?></strong></td>
+                                    <td style="padding: 0.75rem; text-align: right; color: #334155;">KSh <?= number_format((float)$item['unit_price'], 2) ?></td>
+                                    <td style="padding: 0.75rem; text-align: center; color: #334155;"><?= (float)$item['quantity'] ?> <?= htmlspecialchars($item['unit']) ?></td>
+                                    <td style="padding: 0.75rem; text-align: right; font-weight: 600; color: #1b5e20;">KSh <?= number_format((float)$item['subtotal'], 2) ?></td>
                                 </tr>
                             <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
             </div>
 
-            <!-- Total Amount Summary & QR Code Verification Section -->
             <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 1.5rem; border-top: 2px solid #e2e8f0; padding-top: 1.25rem; flex-wrap: wrap; gap: 1rem;">
-                
-                <!-- Official Verification QR Code -->
                 <div style="display: flex; align-items: center; gap: 1rem; background: #f8fafc; padding: 0.75rem; border-radius: 8px; border: 1px solid #e2e8f0;">
-                    <img src="<?= $qrCodeApiUrl ?>" alt="Verification QR Code" style="width: 75px; height: 75px; object-fit: contain;">
+                    <img src="<?= $qrCodeApiUrl ?>" alt="Verification QR" style="width: 75px; height: 75px; object-fit: contain;">
                     <div>
                         <strong style="color: #1b5e20; font-size: 0.82rem; display: block; margin-bottom: 0.1rem;">DanFam Verified Stamp</strong>
                         <span style="color: #64748b; font-size: 0.72rem; line-height: 1.3; display: block;">Scan to verify payment authenticity.</span>
                     </div>
                 </div>
-
-                <!-- Total Payable Amount Breakdown -->
                 <div style="width: 280px; text-align: right;">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 0.3rem; font-size: 0.9rem; color: #64748b;">
                         <span>Subtotal:</span>
@@ -267,21 +175,16 @@ $qrCodeApiUrl = "https://api.qrserver.com/v1/create-qr-code/?size=120x120&data="
                     </div>
                     <div style="display: flex; justify-content: space-between; border-top: 1px solid #cbd5e1; padding-top: 0.5rem; margin-top: 0.3rem; font-size: 1rem; align-items: center;">
                         <span style="color: #0f172a; font-weight: 700;">Total Paid:</span>
-                        <strong style="color: #1b5e20; font-size: 1.4rem;">
-                            KSh <?= number_format((float)$order['total_amount'], 2) ?>
-                        </strong>
+                        <strong style="color: #1b5e20; font-size: 1.4rem;">KSh <?= number_format((float)$order['total_amount'], 2) ?></strong>
                     </div>
                 </div>
             </div>
 
-            <!-- Footer Note -->
             <div style="margin-top: 2.5rem; text-align: center; border-top: 1px dashed #e2e8f0; padding-top: 1.5rem; color: #64748b; font-size: 0.85rem;">
                 <p style="margin: 0 0 0.3rem 0;">Thank you for supporting smallholder farmers through DanFam Market Kenya!</p>
                 <p style="margin: 0;">This is an official electronically generated payment receipt.</p>
             </div>
         </div>
-
     </div>
-
 </body>
 </html>
