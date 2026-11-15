@@ -8,14 +8,10 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 require_once 'config.php';
 require_once 'functions.php';
 
-// Authorization Guard: Require user login
-if (function_exists('require_login')) {
-    require_login();
-} else {
-    if (empty($_SESSION['user_id'])) {
-        header('Location: login.php?error=unauthorized');
-        exit();
-    }
+// Authorization Guard: Require login
+if (empty($_SESSION['user_id'])) {
+    header('Location: login.php?error=unauthorized');
+    exit();
 }
 
 $order_id  = isset($_GET['order_id']) ? filter_var($_GET['order_id'], FILTER_VALIDATE_INT) : 0;
@@ -27,8 +23,8 @@ if ($order_id <= 0) {
     exit();
 }
 
-// Fetch Master Order Details with Buyer Info based on Role (Aligned with danfam_market schema)
 try {
+    // Fetch Master Order Details with Buyer Info based on Role (Strictly matching danfam_market schema)
     if ($user_role === 'Administrator') {
         $stmt = $pdo->prepare("
             SELECT o.order_id AS id, o.buyer_id, o.total_amount, o.shipping_address, 
@@ -69,7 +65,7 @@ try {
     $order = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$order) {
-        header('Location: orders.php?error=unauthorized_or_not_found');
+        header('Location: orders.php?error=order_not_found');
         exit();
     }
 
@@ -86,7 +82,7 @@ try {
     $order_items = $itemsStmt->fetchAll(PDO::FETCH_ASSOC);
 
 } catch (PDOException $e) {
-    error_log('[DanFam receipt.php] DB Error: ' . $e->getMessage());
+    error_log('[DanFam admin_receipt.php] DB Error: ' . $e->getMessage());
     header('Location: orders.php?error=database_error');
     exit();
 }
@@ -106,8 +102,8 @@ $qrCodeApiUrl = "https://api.qrserver.com/v1/create-qr-code/?size=120x120&data="
     <link rel="stylesheet" href="style.css">
     <style>
         body {
-            background-color: var(--gray-light, #f8fafc);
-            color: var(--dark, #0f172a);
+            background-color: #f8fafc;
+            color: #0f172a;
             font-family: system-ui, -apple-system, sans-serif;
             margin: 0;
             padding: 2rem;
