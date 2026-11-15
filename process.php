@@ -8,22 +8,20 @@ error_reporting(E_ALL);
 
 require_once 'config.php';
 require_once 'functions.php';
-require_once 'upload.php'; // Included dedicated secure upload handler
+require_once 'upload.php'; 
 
 if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
 
 // Redirect and terminate execution.
- 
 function redirectTo(string $url): never
 {
     header('Location: ' . $url);
     exit;
 }
 
-//  Stop the request with an HTTP status code.
- 
+// Stop the request with an HTTP status code.
 function stopRequest(string $message, int $status = 400): never
 {
     http_response_code($status);
@@ -59,7 +57,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 // Validate a positive integer ID or quantity.
- 
 function positiveInt(mixed $value): int
 {
     $result = filter_var($value, FILTER_VALIDATE_INT);
@@ -70,7 +67,6 @@ function positiveInt(mixed $value): int
 }
 
 // Validate a monetary amount.
- 
 function validMoney(mixed $value): string
 {
     if (!is_scalar($value) || !is_numeric((string) $value)) {
@@ -234,18 +230,18 @@ try {
                 stopRequest('Administrator access required.', 403);
             }
             $orderId = positiveInt($_POST['order_id'] ?? null);
-            $newStatus = sanitize_input($_POST['status'] ?? 'Placed');
+            $newStatus = trim((string)($_POST['status'] ?? 'Placed'));
             
             $stmt = $pdo->prepare("UPDATE orders SET order_status = ? WHERE order_id = ?");
             $stmt->execute([$newStatus, $orderId]);
             redirectTo('admin_dashboard.php?msg=order_updated');
             break;
 
-        // --- 7. BUYER: PLACE ORDER / CHECKOUT CART ---
+        // --- 7. BUYER / ADMIN: PLACE ORDER / CHECKOUT CART ---
         case 'checkout':
         case 'place_order':
             if (!in_array($userRole, ['Buyer', 'Administrator'], true)) {
-                stopRequest('Only buyers can place orders.', 403);
+                stopRequest('Only buyers or administrators can place orders.', 403);
             }
             
             $shippingAddress = trim((string)($_POST['shipping_address'] ?? ''));
@@ -309,7 +305,9 @@ try {
                 redirectTo('buyer_dashboard.php?success=order_placed');
 
             } catch (Exception $e) {
-                $pdo->rollBack();
+                if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
                 error_log('[Checkout Error] ' . $e->getMessage());
                 redirectTo('cart.php?error=checkout_failed');
             }
