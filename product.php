@@ -223,7 +223,7 @@ $page_title = htmlspecialchars($product['produce_name']) . " - DanFam Market Ken
 
     <!-- Header Navigation -->
     <header style="background: white; border-bottom: 1px solid #e2e8f0; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center;">
-        <a href="catalogue.php" class="logo" style="font-weight: 800; font-size: 1.3rem; color: #1b5e20; text-decoration: none;">🌱 DanFam Market</a>
+        <a href="catalogue.php" class="logo" style="font-weight: 800; font-size: 1.3rem; color: #1b5e20; text-decoration: none;">DanFam Market</a>
         <nav style="display: flex; gap: 1.5rem; align-items: center;">
             <a href="catalogue.php" style="color: #334155; text-decoration: none; font-weight: 600;">Catalogue</a>
             <a href="cart.php" style="color: #334155; text-decoration: none; font-weight: 600;">Cart (<span id="cart-count">0</span>)</a>
