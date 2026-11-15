@@ -47,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cart_json'])) {
 
             // 2. Insert Order Items & Deduct Stock
             $stmt_item = $pdo->prepare("
-                INSERT INTO order_items (order_id, produce_id, quantity, price_at_purchase) 
+                INSERT INTO order_items (order_id, produce_id, quantity, unit_price) 
                 VALUES (?, ?, ?, ?)
             ");
             $stmt_stock = $pdo->prepare("
