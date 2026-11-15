@@ -148,7 +148,7 @@ require_once 'header.php';
                                 <td style="padding: 0.85rem 0.75rem; font-size: 0.9rem; max-width: 200px;"><?= htmlspecialchars($order['shipping_address']) ?></td>
                                 <td style="padding: 0.85rem 0.75rem; font-weight: 700; color: #1b5e20;">
                                     KSh <?= number_format((float)$order['total_amount'], 2) ?>
-                                 </td>
+                                </td>
                                 <td style="padding: 0.85rem 0.75rem;">
                                     <span style="padding: 0.25rem 0.65rem; border-radius: 50px; font-size: 0.8rem; font-weight: 700; 
                                         background: <?= in_array($order['status'], ['Delivered', 'Completed'], true) ? '#d1fae5; color: #065f46;' : ($order['status'] === 'Cancelled' ? '#fee2e2; color: #991b1b;' : '#fef3c7; color: #92400e;') ?>">
@@ -158,13 +158,13 @@ require_once 'header.php';
                                 <td style="padding: 0.85rem 0.75rem; text-align: center;">
                                     <div style="display: flex; gap: 6px; justify-content: center; align-items: center; flex-wrap: wrap;">
                                         
-                                        <!-- PRINTABLE RECEIPT LINK (Enabled for Administrator on any order status) -->
+                                        <!-- UNCONDITIONAL ADMIN RECEIPT PRINTING -->
                                         <?php if ($user_role === 'Administrator' || in_array($order['status'], ['Confirmed', 'Dispatched', 'Delivered', 'Completed'], true)): ?>
                                             <a href="admin_receipt.php?order_id=<?= (int)$order['id'] ?>" class="btn btn-outline" style="padding: 0.35rem 0.65rem; font-size: 0.82rem; border: 1px solid #1b5e20; border-radius: 4px; text-decoration: none; color: #1b5e20; background: #f0fdf4; font-weight: 600;" target="_blank" title="View & Print Payment Receipt">
                                                 🖨️ Receipt
                                             </a>
                                         <?php else: ?>
-                                            <span style="font-size: 0.78rem; color: #94a3b8; font-style: italic; padding: 0.35rem 0.5rem;" title="Receipt available after order payment is confirmed">
+                                            <span style="font-size: 0.78rem; color: #94a3b8; font-style: italic; padding: 0.35rem 0.5rem;" title="Receipt available after order confirmation">
                                                 ⏳ Pending
                                             </span>
                                         <?php endif; ?>
